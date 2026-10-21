@@ -180,11 +180,11 @@ export function ItemEditorScreen({ id }: { id?: string }) {
             {Array.from({ length: 3 - images.length }).map((_, index) => (
               <label className="photo-slot empty" key={`empty-${index}`}>
                 <ImagePlus aria-hidden="true" /><span>追加</span>
-                <input type="file" accept="image/*" onChange={(event) => { addImages(event.target.files); event.target.value = '' }} disabled={processing} />
+                <input type="file" accept="image/*" multiple onChange={(event) => { addImages(event.target.files); event.target.value = '' }} disabled={processing} />
               </label>
             ))}
           </div>
-          <label className="camera-button"><Camera aria-hidden="true" />{processing ? '写真を処理しています…' : 'カメラまたは写真ライブラリから追加'}<input type="file" accept="image/*" multiple onChange={(event) => { addImages(event.target.files); event.target.value = '' }} disabled={processing || images.length >= 3} /></label>
+          <label className="camera-button"><Camera aria-hidden="true" />{processing ? '写真を処理しています…' : `写真を追加（あと${3 - images.length}枚・複数選択可）`}<input type="file" accept="image/*" multiple onChange={(event) => { addImages(event.target.files); event.target.value = '' }} disabled={processing || images.length >= 3} /></label>
         </section>
 
         <section className="editor-section">
