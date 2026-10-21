@@ -1,7 +1,7 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import Dexie from 'dexie'
 import { db, emptyTrash, initializeDatabase, moveItemToTrash, restoreItem, saveItem } from './db'
-import type { EditorDraftRecord, ItemRecord } from './types'
+import type { EditorDraftRecord, ImageRecord, ItemRecord } from './types'
 
 const makeItem = (): ItemRecord => ({
   id: crypto.randomUUID(),
@@ -69,6 +69,35 @@ describe('database operations', () => {
     expect(await db.drafts.get('new')).toMatchObject({ itemId: 'draft-item', draft: { name: '入力途中のコート' } })
     expect((await db.drafts.get('new'))?.images[0]?.imageBlob.size).toBeGreaterThan(0)
     expect(await db.items.count()).toBe(0)
+  })
+
+  it('does not rewrite unchanged photo blobs when editing an item', async () => {
+    const item = makeItem()
+    const makeImage = (id: string, sortOrder: number): ImageRecord => ({
+      id,
+      itemId: item.id,
+      sortOrder,
+      imageBlob: new Blob([`full-${id}`], { type: 'image/webp' }),
+      thumbnailBlob: new Blob([`thumb-${id}`], { type: 'image/webp' }),
+      mimeType: 'image/webp',
+      width: 228,
+      height: 228,
+      byteSize: 8,
+      createdAt: new Date(),
+    })
+    await saveItem(item, [makeImage('first', 0), makeImage('second', 1)])
+    const stored = await db.images.where('itemId').equals(item.id).sortBy('sortOrder')
+    const bulkAdd = vi.spyOn(db.images, 'bulkAdd')
+
+    await saveItem({ ...item, name: '編集後' }, [
+      { ...stored[1], sortOrder: 0 },
+      { ...stored[0], sortOrder: 1 },
+    ])
+
+    expect(bulkAdd).not.toHaveBeenCalled()
+    const reordered = await db.images.where('itemId').equals(item.id).sortBy('sortOrder')
+    expect(reordered.map((image) => image.id)).toEqual(['second', 'first'])
+    expect(await reordered[0].imageBlob.text()).toBe('full-second')
   })
 
   it('upgrades a version 1 database without losing existing items', async () => {

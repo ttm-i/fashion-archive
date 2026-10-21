@@ -57,11 +57,19 @@ export async function markDataChanged() {
 export async function saveItem(item: ItemRecord, images: ImageRecord[]) {
   await db.transaction('rw', db.items, db.images, async () => {
     const oldImages = await db.images.where('itemId').equals(item.id).toArray()
+    const oldImageMap = new Map(oldImages.map((image) => [image.id, image]))
     const nextIds = new Set(images.map((image) => image.id))
     const removedIds = oldImages.filter((image) => !nextIds.has(image.id)).map((image) => image.id)
     if (removedIds.length) await db.images.bulkDelete(removedIds)
     await db.items.put(item)
-    if (images.length) await db.images.bulkPut(images)
+    const addedImages = images.filter((image) => !oldImageMap.has(image.id))
+    if (addedImages.length) await db.images.bulkAdd(addedImages)
+    for (const image of images) {
+      const oldImage = oldImageMap.get(image.id)
+      if (oldImage && (oldImage.sortOrder !== image.sortOrder || oldImage.itemId !== image.itemId)) {
+        await db.images.update(image.id, { itemId: image.itemId, sortOrder: image.sortOrder })
+      }
+    }
   })
   await markDataChanged()
 }
