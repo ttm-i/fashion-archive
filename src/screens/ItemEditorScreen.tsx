@@ -202,7 +202,7 @@ export function ItemEditorScreen({ id }: { id?: string }) {
           <summary><span><small>PURCHASE</small>購入情報</span></summary>
           <div className="form-stack">
             <div className="field-pair"><label><span>購入価格</span><div className="money-input"><span>¥</span><input inputMode="numeric" value={draft.purchasePrice} onChange={(event) => update('purchasePrice', event.target.value.replace(/\D/g, ''))} placeholder="0" /></div></label><label><span>定価</span><div className="money-input"><span>¥</span><input inputMode="numeric" value={draft.originalPrice} onChange={(event) => update('originalPrice', event.target.value.replace(/\D/g, ''))} placeholder="0" /></div></label></div>
-            <label><span>購入日</span><input type="date" value={draft.purchaseDate} onChange={(event) => update('purchaseDate', event.target.value)} /></label>
+            <label><span>購入日</span><div className="date-input-shell"><input type="date" value={draft.purchaseDate} onChange={(event) => update('purchaseDate', event.target.value)} /></div></label>
             <label><span>購入方法</span><select value={draft.purchaseMethod} onChange={(event) => update('purchaseMethod', event.target.value as PurchaseMethod | '')}><option value="">未設定</option>{PURCHASE_METHODS.map((method) => <option key={method}>{method}</option>)}</select></label>
             <label><span>購入先</span><input list="sources" value={draft.purchaseSource} onChange={(event) => update('purchaseSource', event.target.value)} placeholder="例：公式オンラインストア" /><datalist id="sources">{sourceSuggestions.map((value) => <option key={value} value={value} />)}</datalist></label>
           </div>
