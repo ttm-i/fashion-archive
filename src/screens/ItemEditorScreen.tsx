@@ -3,6 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { Camera, ChevronLeft, ChevronRight, Heart, ImagePlus, Star, Trash2 } from 'lucide-react'
 import { AppHeader } from '../components/AppHeader'
 import { ItemImage } from '../components/ItemImage'
+import { SuggestionInput } from '../components/SuggestionInput'
 import { db, saveItem } from '../db'
 import { navigate } from '../hooks/useRoute'
 import type { EditorDraftRecord, ImageRecord, ItemDraft, ItemRecord, PurchaseMethod } from '../types'
@@ -232,9 +233,9 @@ export function ItemEditorScreen({ id }: { id?: string }) {
           <div className="section-heading"><div><span>BASIC</span><h2>基本情報</h2></div></div>
           <div className="form-stack">
             <label><span>アイテム名 <b>*</b></span><input id="item-name" value={draft.name} onChange={(event) => update('name', event.target.value)} placeholder="例：ウールブレンドジャケット" /></label>
-            <label><span>ブランド</span><input list="brands" value={draft.brand} onChange={(event) => update('brand', event.target.value)} placeholder="例：AURALEE" /><datalist id="brands">{brandSuggestions.map((value) => <option key={value} value={value} />)}</datalist></label>
+            <SuggestionInput id="item-brand" label="ブランド" value={draft.brand} suggestions={brandSuggestions} onChange={(value) => update('brand', value)} placeholder="例：AURALEE" />
             <label><span>カテゴリー</span><select value={draft.categoryId ?? ''} onChange={(event) => update('categoryId', event.target.value || null)}><option value="">未設定</option>{categories.filter((category) => category.isActive).map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label>
-            <div className="field-pair"><label><span>サイズ</span><input value={draft.size} onChange={(event) => update('size', event.target.value)} placeholder="M / 42 / 27.0" /></label><label><span>カラー</span><input list="colors" value={draft.color} onChange={(event) => update('color', event.target.value)} placeholder="ブラック" /><datalist id="colors">{colorSuggestions.map((value) => <option key={value} value={value} />)}</datalist></label></div>
+            <div className="field-pair"><label><span>サイズ</span><input value={draft.size} onChange={(event) => update('size', event.target.value)} placeholder="M / 42 / 27.0" /></label><SuggestionInput id="item-color" label="カラー" value={draft.color} suggestions={colorSuggestions} onChange={(value) => update('color', value)} placeholder="ブラック" /></div>
             <label className="switch-row"><span><Heart aria-hidden="true" />お気に入り</span><input type="checkbox" checked={draft.isFavorite} onChange={(event) => update('isFavorite', event.target.checked)} /></label>
           </div>
         </section>
@@ -245,7 +246,7 @@ export function ItemEditorScreen({ id }: { id?: string }) {
             <div className="field-pair"><label><span>購入価格</span><div className="money-input"><span>¥</span><input inputMode="numeric" value={draft.purchasePrice} onChange={(event) => update('purchasePrice', event.target.value.replace(/\D/g, ''))} placeholder="0" /></div></label><label><span>定価</span><div className="money-input"><span>¥</span><input inputMode="numeric" value={draft.originalPrice} onChange={(event) => update('originalPrice', event.target.value.replace(/\D/g, ''))} placeholder="0" /></div></label></div>
             <label><span>購入日</span><div className="date-input-shell"><input type="date" value={draft.purchaseDate} onChange={(event) => update('purchaseDate', event.target.value)} /></div></label>
             <label><span>購入方法</span><select value={draft.purchaseMethod} onChange={(event) => update('purchaseMethod', event.target.value as PurchaseMethod | '')}><option value="">未設定</option>{PURCHASE_METHODS.map((method) => <option key={method}>{method}</option>)}</select></label>
-            <label><span>購入先</span><input list="sources" value={draft.purchaseSource} onChange={(event) => update('purchaseSource', event.target.value)} placeholder="例：公式オンラインストア" /><datalist id="sources">{sourceSuggestions.map((value) => <option key={value} value={value} />)}</datalist></label>
+            <SuggestionInput id="purchase-source" label="購入先" value={draft.purchaseSource} suggestions={sourceSuggestions} onChange={(value) => update('purchaseSource', value)} placeholder="例：公式オンラインストア" />
           </div>
         </details>
 
