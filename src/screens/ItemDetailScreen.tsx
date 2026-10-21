@@ -16,9 +16,10 @@ export function ItemDetailScreen({ id }: { id: string }) {
   const [deleted, setDeleted] = useState(false)
   const touchStart = useRef<{ x: number; y: number } | null>(null)
   const itemTouchStart = useRef<{ x: number; y: number } | null>(null)
+  const isWanted = item?.ownershipStatus === 'wanted'
   const navigationIds = (() => {
     try {
-      const parsed = JSON.parse(sessionStorage.getItem('collectionNavigationIds') ?? '[]')
+      const parsed = JSON.parse(sessionStorage.getItem(isWanted ? 'wishlistNavigationIds' : 'collectionNavigationIds') ?? '[]')
       return Array.isArray(parsed) && parsed.every((value) => typeof value === 'string') ? parsed as string[] : []
     } catch { return [] }
   })()
@@ -93,7 +94,7 @@ export function ItemDetailScreen({ id }: { id: string }) {
 
   return (
     <main className="screen detail-screen">
-      <AppHeader title="アイテム詳細" back={() => navigate('collection')} action={<button className={item.isFavorite ? 'icon-button active' : 'icon-button'} type="button" onClick={toggleFavorite} aria-label="お気に入り"><Heart fill={item.isFavorite ? 'currentColor' : 'none'} aria-hidden="true" /></button>} />
+      <AppHeader title={isWanted ? 'ほしいもの詳細' : 'アイテム詳細'} back={() => navigate(isWanted ? 'wishlist' : 'collection')} action={isWanted ? undefined : <button className={item.isFavorite ? 'icon-button active' : 'icon-button'} type="button" onClick={toggleFavorite} aria-label="お気に入り"><Heart fill={item.isFavorite ? 'currentColor' : 'none'} aria-hidden="true" /></button>} />
       <section className="detail-gallery" onTouchStart={beginSwipe} onTouchEnd={finishSwipe}>
         {images.length ? <ItemImage blob={images[imageIndex]?.imageBlob} alt={`${item.name}の写真${imageIndex + 1}`} /> : <ItemImage alt={item.name} />}
         {images.length > 0 && <button className="gallery-expand" type="button" onClick={() => setFullScreen(true)} aria-label="写真を全画面表示"><Maximize2 aria-hidden="true" /></button>}
@@ -104,7 +105,7 @@ export function ItemDetailScreen({ id }: { id: string }) {
       <section className="detail-content" onTouchStart={beginItemSwipe} onTouchEnd={finishItemSwipe}>
         {item.brand && <span className="detail-brand">{item.brand}</span>}
         <h1>{item.name}</h1>
-        <div className="detail-price"><strong>{item.purchasePrice !== null ? formatYen(item.purchasePrice) : '価格未登録'}</strong>{item.originalPrice !== null && <span>定価 {formatYen(item.originalPrice)}</span>}{savings !== null && <em>{formatYen(savings)} OFF</em>}</div>
+        {isWanted ? <div className="detail-price"><strong>{item.originalPrice !== null ? formatYen(item.originalPrice) : '価格未登録'}</strong>{item.originalPrice !== null && <small>想定価格</small>}</div> : <div className="detail-price"><strong>{item.purchasePrice !== null ? formatYen(item.purchasePrice) : '価格未登録'}</strong>{item.originalPrice !== null && <span>定価 {formatYen(item.originalPrice)}</span>}{savings !== null && <em>{formatYen(savings)} OFF</em>}</div>}
 
         <div className="detail-facts">
           {category && <Fact label="CATEGORY" value={category.name} />}
@@ -112,12 +113,13 @@ export function ItemDetailScreen({ id }: { id: string }) {
           {item.color && <Fact label="COLOR" value={item.color} />}
           {item.purchaseDate && <Fact label="DATE" value={formatDate(item.purchaseDate)} />}
           {item.purchaseMethod && <Fact label="METHOD" value={item.purchaseMethod} />}
-          {item.purchaseSource && <Fact label="STORE" value={item.purchaseSource} />}
+          {item.purchaseSource && <Fact label={isWanted ? 'CANDIDATE STORE' : 'STORE'} value={item.purchaseSource} />}
         </div>
 
         {item.notes && <div className="detail-notes"><span>NOTES</span><p>{item.notes}</p></div>}
         {(previousId || nextId) && <nav className="detail-item-nav" aria-label="前後のアイテム"><button type="button" disabled={!previousId} onClick={() => openAdjacent(previousId)}><ChevronLeft aria-hidden="true" />前のアイテム</button><span>{navigationIndex + 1} / {navigationIds.length}</span><button type="button" disabled={!nextId} onClick={() => openAdjacent(nextId)}>次のアイテム<ChevronRight aria-hidden="true" /></button></nav>}
-        <button className="primary-button block" type="button" onClick={() => navigate(`edit/${id}`)}><Pencil aria-hidden="true" />編集する</button>
+        {isWanted && <button className="primary-button block acquire-button" type="button" onClick={() => navigate(`acquire/${id}`)}>購入済みにする</button>}
+        <button className={isWanted ? 'secondary-button block' : 'primary-button block'} type="button" onClick={() => navigate(isWanted ? `edit-wanted/${id}` : `edit/${id}`)}><Pencil aria-hidden="true" />編集する</button>
         <button className="danger-link" type="button" onClick={remove}><Trash2 aria-hidden="true" />ゴミ箱へ移動</button>
       </section>
 

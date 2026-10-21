@@ -7,7 +7,7 @@ function item(id: string, color: string, date: string, price: number): ItemRecor
   return {
     id, name: `アイテム${id}`, brand: 'TEST', categoryId: 'tops', size: '', color,
     originalPrice: null, purchasePrice: price, purchaseDate: date, purchaseMethod: '実店舗', purchaseSource: '', notes: '', isFavorite: false,
-    coverImageId: null, createdAt: now, updatedAt: now, deletedAt: null, schemaVersion: 1,
+    ownershipStatus: 'owned', coverImageId: null, createdAt: now, updatedAt: now, deletedAt: null, schemaVersion: 2,
   }
 }
 

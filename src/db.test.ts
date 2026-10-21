@@ -17,6 +17,7 @@ const makeItem = (): ItemRecord => ({
   purchaseSource: 'テストストア',
   notes: '',
   isFavorite: false,
+  ownershipStatus: 'owned',
   coverImageId: null,
   createdAt: new Date(),
   updatedAt: new Date(),
@@ -33,7 +34,7 @@ describe('database operations', () => {
 
   it('seeds default categories', async () => {
     expect(await db.categories.count()).toBe(7)
-    expect((await db.settings.get('schemaVersion'))?.value).toBe(2)
+    expect((await db.settings.get('schemaVersion'))?.value).toBe(3)
   })
 
   it('saves, trashes, restores and permanently empties items', async () => {
@@ -110,7 +111,9 @@ describe('database operations', () => {
       settings: 'key',
     })
     await legacy.open()
-    await legacy.table('items').put(makeItem())
+    const legacyItem = makeItem() as Partial<ItemRecord>
+    delete legacyItem.ownershipStatus
+    await legacy.table('items').put(legacyItem)
     await legacy.table('settings').put({ key: 'schemaVersion', value: 1 })
     legacy.close()
 
@@ -118,7 +121,8 @@ describe('database operations', () => {
     await initializeDatabase()
 
     expect(await db.items.count()).toBe(1)
-    expect((await db.settings.get('schemaVersion'))?.value).toBe(2)
+    expect((await db.settings.get('schemaVersion'))?.value).toBe(3)
+    expect((await db.items.toArray())[0]?.ownershipStatus).toBe('owned')
     await expect(db.drafts.count()).resolves.toBe(0)
   })
 })

@@ -45,8 +45,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .text-action { min-height: 44px; padding: 0 4px; border: 0; background: transparent; color: var(--accent); font-weight: 700; }
 .text-action.danger { color: var(--danger); }
 
-.bottom-nav { position: fixed; z-index: 30; left: 50%; bottom: 0; width: min(640px, 100%); height: calc(68px + env(safe-area-inset-bottom)); padding: 6px 34px env(safe-area-inset-bottom); transform: translateX(-50%); display: flex; justify-content: space-between; background: rgba(255,255,255,.96); backdrop-filter: blur(18px); border-top: 1px solid var(--line); }
-.bottom-nav button { width: 88px; min-height: 56px; border: 0; background: transparent; color: #989189; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 10px; }
+.bottom-nav { position: fixed; z-index: 30; left: 50%; bottom: 0; width: min(640px, 100%); height: calc(68px + env(safe-area-inset-bottom)); padding: 6px 12px env(safe-area-inset-bottom); transform: translateX(-50%); display: flex; justify-content: space-between; background: rgba(255,255,255,.96); backdrop-filter: blur(18px); border-top: 1px solid var(--line); }
+.bottom-nav button { width: 82px; min-height: 56px; border: 0; background: transparent; color: #989189; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 10px; }
 .bottom-nav button.active { color: var(--accent); }
 .bottom-nav svg { width: 20px; height: 20px; }
 
@@ -81,6 +81,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .item-card__line { margin-top: 3px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 7px; align-items: start; }
 .item-card__line h2 { margin: 0; min-width: 0; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; font-size: 12px; line-height: 1.38; font-weight: 700; }
 .item-card__line strong { font-size: 11px; white-space: nowrap; }
+.wishlist-spacer { height: 16px; }
+.wishlist-badge { position: absolute; top: 8px; left: 8px; padding: 5px 7px; background: rgba(23,22,20,.82); color: #fff; font-size: 8px; font-weight: 700; letter-spacing: .12em; }
 .image-placeholder { display: grid; place-items: center; background: var(--soft); color: #b4aca3; }
 .image-placeholder svg { width: 25px; height: 25px; }
 .floating-add { position: fixed; z-index: 29; right: max(20px, calc((100vw - 600px) / 2)); bottom: calc(80px + env(safe-area-inset-bottom)); width: 56px; height: 56px; padding: 0; border: 0; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: #fff; box-shadow: 0 10px 26px rgba(217,107,79,.35); }
@@ -203,6 +205,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .detail-price strong { font-size: 19px; }
 .detail-price span { color: var(--muted); font-size: 12px; text-decoration: line-through; }
 .detail-price em { padding: 3px 6px; background: var(--accent-soft); color: var(--accent); font-size: 10px; font-style: normal; font-weight: 700; }
+.detail-price small { color: var(--muted); font-size: 10px; }
 .detail-facts { margin: 23px 0; padding: 19px 0 6px; display: grid; grid-template-columns: 1fr 1fr; gap: 18px 16px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 .detail-facts div { min-width: 0; display: grid; gap: 4px; }
 .detail-facts span, .detail-notes > span { color: var(--muted); font-size: 9px; letter-spacing: .12em; }
@@ -216,6 +219,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .detail-item-nav button svg { width: 17px; }
 .detail-item-nav span { color: var(--muted); font-size: 10px; }
 .danger-link { width: 100%; min-height: 48px; margin-top: 12px; border: 0; background: transparent; color: var(--danger); display: flex; justify-content: center; align-items: center; gap: 8px; }
+.acquire-button { margin-bottom: 10px; }
 .danger-link svg { width: 17px; }
 .image-lightbox { position: fixed; z-index: 200; inset: 0; padding: calc(60px + env(safe-area-inset-top)) 10px calc(20px + env(safe-area-inset-bottom)); display: grid; place-items: center; background: rgba(12,11,10,.96); }
 .image-lightbox > button { position: absolute; top: calc(10px + env(safe-area-inset-top)); right: 12px; width: 46px; height: 46px; border: 0; border-radius: 50%; display: grid; place-items: center; background: #fff; }

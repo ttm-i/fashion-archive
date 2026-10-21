@@ -21,7 +21,7 @@ const SORT_LABELS: Record<SortMode, string> = {
 }
 
 export function CollectionScreen() {
-  const items = useLiveQuery(() => db.items.filter((item) => item.deletedAt === null).toArray(), [], [])
+  const items = useLiveQuery(() => db.items.filter((item) => item.deletedAt === null && item.ownershipStatus !== 'wanted').toArray(), [], [])
   const images = useLiveQuery(() => db.images.toArray(), [], [])
   const categories = useLiveQuery(() => db.categories.orderBy('sortOrder').toArray(), [], [])
   const showPricesSetting = useLiveQuery(() => db.settings.get('showPricesInCollection'), [], undefined)

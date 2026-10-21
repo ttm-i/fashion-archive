@@ -22,6 +22,7 @@ function makeItem(): ItemRecord {
     purchaseSource: '公式ストア',
     notes: '復元テスト',
     isFavorite: true,
+    ownershipStatus: 'owned',
     coverImageId: imageId,
     createdAt: now,
     updatedAt: now,
@@ -73,12 +74,12 @@ describe('complete backup', () => {
     })
     await restoreBackup(file)
 
-    expect(await db.items.get(itemId)).toMatchObject({ name: 'バックアップ用コート', coverImageId: imageId })
+    expect(await db.items.get(itemId)).toMatchObject({ name: 'バックアップ用コート', coverImageId: imageId, ownershipStatus: 'owned' })
     const restoredImage = await db.images.get(imageId)
     expect(restoredImage?.imageBlob.size).toBe(new Blob(['full-image']).size)
     expect(restoredImage?.thumbnailBlob.size).toBe(new Blob(['thumbnail']).size)
     expect(await db.drafts.count()).toBe(0)
-    expect((await db.settings.get('schemaVersion'))?.value).toBe(2)
+    expect((await db.settings.get('schemaVersion'))?.value).toBe(3)
   })
 
   it('rejects a file that is not a Fashion Archive backup', async () => {

@@ -8,7 +8,7 @@ import { formatYen } from '../utils/format'
 interface Row { label: string; count: number; amount: number }
 
 export function InsightsScreen() {
-  const items = useLiveQuery(() => db.items.filter((item) => item.deletedAt === null).toArray(), [], [])
+  const items = useLiveQuery(() => db.items.filter((item) => item.deletedAt === null && item.ownershipStatus !== 'wanted').toArray(), [], [])
   const categories = useLiveQuery(() => db.categories.toArray(), [], [])
   const categoryNames = useMemo(() => new Map(categories.map((category) => [category.id, category.name])), [categories])
   const priced = items.filter((item) => item.purchasePrice !== null)

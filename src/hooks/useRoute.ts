@@ -5,6 +5,10 @@ export type Route =
   | { name: 'insights' }
   | { name: 'settings' }
   | { name: 'new' }
+  | { name: 'wishlist' }
+  | { name: 'new-wanted' }
+  | { name: 'edit-wanted'; id: string }
+  | { name: 'acquire'; id: string }
   | { name: 'detail'; id: string }
   | { name: 'edit'; id: string }
   | { name: 'trash' }
@@ -16,6 +20,10 @@ function parseHash(): Route {
   const [first, second] = path.split('/')
   if (first === 'item' && second) return { name: 'detail', id: second }
   if (first === 'edit' && second) return { name: 'edit', id: second }
+  if (first === 'edit-wanted' && second) return { name: 'edit-wanted', id: second }
+  if (first === 'acquire' && second) return { name: 'acquire', id: second }
+  if (first === 'wishlist') return { name: 'wishlist' }
+  if (first === 'new-wanted') return { name: 'new-wanted' }
   if (first === 'new') return { name: 'new' }
   if (first === 'insights') return { name: 'insights' }
   if (first === 'settings') return { name: 'settings' }

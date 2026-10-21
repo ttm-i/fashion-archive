@@ -15,8 +15,10 @@ const blankDraft: ItemDraft = {
   name: '', brand: '', categoryId: null, size: '', color: '', originalPrice: '', purchasePrice: '', purchaseDate: '', purchaseMethod: '', purchaseSource: '', notes: '', isFavorite: false,
 }
 
-export function ItemEditorScreen({ id }: { id?: string }) {
-  const draftKey = id ? `edit:${id}` : 'new'
+export function ItemEditorScreen({ id, mode = 'owned' }: { id?: string; mode?: 'owned' | 'wanted' | 'acquire' }) {
+  const isWanted = mode === 'wanted'
+  const isAcquire = mode === 'acquire'
+  const draftKey = id ? `${mode}:${id}` : isWanted ? 'new-wanted' : 'new'
   const editorData = useLiveQuery(async () => id ? {
     item: await db.items.get(id),
     images: await db.images.where('itemId').equals(id).sortBy('sortOrder'),
@@ -99,7 +101,7 @@ export function ItemEditorScreen({ id }: { id?: string }) {
   const goBack = async () => {
     if (dirty && !window.confirm('入力中の変更を破棄しますか？')) return
     if (dirty) await db.drafts.delete(draftKey)
-    navigate(id ? `item/${id}` : 'collection')
+    navigate(id ? `item/${id}` : isWanted ? 'wishlist' : 'collection')
   }
 
   const resumeDraft = () => {
@@ -173,17 +175,18 @@ export function ItemEditorScreen({ id }: { id?: string }) {
         size: draft.size.trim(),
         color: draft.color.trim(),
         originalPrice: parseOptionalPrice(draft.originalPrice),
-        purchasePrice: parseOptionalPrice(draft.purchasePrice),
-        purchaseDate: draft.purchaseDate || null,
-        purchaseMethod: (draft.purchaseMethod || null) as PurchaseMethod | null,
+        purchasePrice: isWanted ? null : parseOptionalPrice(draft.purchasePrice),
+        purchaseDate: isWanted ? null : draft.purchaseDate || null,
+        purchaseMethod: isWanted ? null : (draft.purchaseMethod || null) as PurchaseMethod | null,
         purchaseSource: draft.purchaseSource.trim(),
         notes: draft.notes.trim(),
-        isFavorite: draft.isFavorite,
+        isFavorite: isWanted ? false : draft.isFavorite,
+        ownershipStatus: isWanted ? 'wanted' : 'owned',
         coverImageId: images[0]?.id ?? null,
         createdAt: existing?.createdAt ?? now,
         updatedAt: now,
         deletedAt: existing?.deletedAt ?? null,
-        schemaVersion: 1,
+        schemaVersion: 2,
       }
       await saveItem(item, images.map((image, sortOrder) => ({ ...image, itemId, sortOrder })))
       await db.drafts.delete(draftKey)
@@ -201,9 +204,9 @@ export function ItemEditorScreen({ id }: { id?: string }) {
 
   return (
     <main className="screen editor-screen">
-      <AppHeader title={id ? 'アイテムを編集' : '新しいアイテム'} back={goBack} action={<button className="text-action" type="button" onClick={submit} disabled={saving || processing}>保存</button>} />
+      <AppHeader title={isAcquire ? '購入済みにする' : isWanted ? (id ? 'ほしいものを編集' : 'ほしいものを追加') : (id ? 'アイテムを編集' : '新しいアイテム')} back={goBack} action={<button className="text-action" type="button" onClick={submit} disabled={saving || processing}>{isAcquire ? '登録' : '保存'}</button>} />
       <form onSubmit={(event) => { event.preventDefault(); submit() }}>
-        <section className="editor-intro"><span>NEW RECORD</span><h1>{id ? 'アイテムを編集' : '新しい一着を記録'}</h1><p>写真と名前だけでも保存できます。</p></section>
+        <section className="editor-intro"><span>{isAcquire ? 'MOVE TO COLLECTION' : isWanted ? 'WISHLIST' : 'NEW RECORD'}</span><h1>{isAcquire ? '購入情報を追加' : isWanted ? (id ? '購入候補を編集' : '気になる一着を記録') : (id ? 'アイテムを編集' : '新しい一着を記録')}</h1><p>{isAcquire ? '保存すると、ほしいものからコレクションへ移動します。' : '写真と名前だけでも保存できます。'}</p></section>
 
         <section className="editor-section photo-editor">
           <div className="section-heading"><div><span>PHOTOS</span><h2>写真</h2></div><p>{images.length} / 3</p></div>
@@ -236,11 +239,17 @@ export function ItemEditorScreen({ id }: { id?: string }) {
             <SuggestionInput id="item-brand" label="ブランド" value={draft.brand} suggestions={brandSuggestions} onChange={(value) => update('brand', value)} placeholder="例：AURALEE" />
             <label><span>カテゴリー</span><select value={draft.categoryId ?? ''} onChange={(event) => update('categoryId', event.target.value || null)}><option value="">未設定</option>{categories.filter((category) => category.isActive).map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label>
             <div className="field-pair"><label><span>サイズ</span><input value={draft.size} onChange={(event) => update('size', event.target.value)} placeholder="M / 42 / 27.0" /></label><SuggestionInput id="item-color" label="カラー" value={draft.color} suggestions={colorSuggestions} onChange={(value) => update('color', value)} placeholder="ブラック" /></div>
-            <label className="switch-row"><span><Heart aria-hidden="true" />お気に入り</span><input type="checkbox" checked={draft.isFavorite} onChange={(event) => update('isFavorite', event.target.checked)} /></label>
+            {!isWanted && <label className="switch-row"><span><Heart aria-hidden="true" />お気に入り</span><input type="checkbox" checked={draft.isFavorite} onChange={(event) => update('isFavorite', event.target.checked)} /></label>}
           </div>
         </section>
 
-        <details className="editor-section disclosure" open>
+        {isWanted ? <details className="editor-section disclosure" open>
+          <summary><span><small>WISHLIST</small>購入候補</span></summary>
+          <div className="form-stack">
+            <label><span>想定価格</span><div className="money-input"><span>¥</span><input inputMode="numeric" value={draft.originalPrice} onChange={(event) => update('originalPrice', event.target.value.replace(/\D/g, ''))} placeholder="0" /></div></label>
+            <SuggestionInput id="purchase-source" label="購入候補先" value={draft.purchaseSource} suggestions={sourceSuggestions} onChange={(value) => update('purchaseSource', value)} placeholder="例：公式オンラインストア" />
+          </div>
+        </details> : <details className="editor-section disclosure" open>
           <summary><span><small>PURCHASE</small>購入情報</span></summary>
           <div className="form-stack">
             <div className="field-pair"><label><span>購入価格</span><div className="money-input"><span>¥</span><input inputMode="numeric" value={draft.purchasePrice} onChange={(event) => update('purchasePrice', event.target.value.replace(/\D/g, ''))} placeholder="0" /></div></label><label><span>定価</span><div className="money-input"><span>¥</span><input inputMode="numeric" value={draft.originalPrice} onChange={(event) => update('originalPrice', event.target.value.replace(/\D/g, ''))} placeholder="0" /></div></label></div>
@@ -248,7 +257,7 @@ export function ItemEditorScreen({ id }: { id?: string }) {
             <label><span>購入方法</span><select value={draft.purchaseMethod} onChange={(event) => update('purchaseMethod', event.target.value as PurchaseMethod | '')}><option value="">未設定</option>{PURCHASE_METHODS.map((method) => <option key={method}>{method}</option>)}</select></label>
             <SuggestionInput id="purchase-source" label="購入先" value={draft.purchaseSource} suggestions={sourceSuggestions} onChange={(value) => update('purchaseSource', value)} placeholder="例：公式オンラインストア" />
           </div>
-        </details>
+        </details>}
 
         <details className="editor-section disclosure">
           <summary><span><small>NOTES</small>その他</span></summary>
@@ -256,7 +265,7 @@ export function ItemEditorScreen({ id }: { id?: string }) {
         </details>
 
         {error && <p className="form-error" role="alert">{error}</p>}
-        <div className="editor-save"><button className="primary-button block" type="submit" disabled={saving || processing}>{saving ? '保存しています…' : '保存する'}</button></div>
+        <div className="editor-save"><button className="primary-button block" type="submit" disabled={saving || processing}>{saving ? '保存しています…' : isAcquire ? 'コレクションへ移す' : '保存する'}</button></div>
       </form>
       {pendingDraft && <div className="sheet-backdrop draft-recovery"><section className="bottom-sheet" role="dialog" aria-modal="true" aria-labelledby="draft-title"><div className="sheet-handle" /><span className="draft-recovery__eyebrow">AUTO SAVED</span><h2 id="draft-title">入力途中の内容があります</h2><p>前回入力していた内容と写真を再開できます。</p><div className="sheet-actions"><button className="secondary-button" type="button" onClick={discardDraft}>破棄する</button><button className="primary-button" type="button" onClick={resumeDraft}>入力を再開</button></div></section></div>}
     </main>

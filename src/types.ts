@@ -7,6 +7,7 @@ export const PURCHASE_METHODS = [
 ] as const
 
 export type PurchaseMethod = (typeof PURCHASE_METHODS)[number]
+export type OwnershipStatus = 'owned' | 'wanted'
 
 export interface ItemRecord {
   id: string
@@ -22,11 +23,12 @@ export interface ItemRecord {
   purchaseSource: string
   notes: string
   isFavorite: boolean
+  ownershipStatus: OwnershipStatus
   coverImageId: string | null
   createdAt: Date
   updatedAt: Date
   deletedAt: Date | null
-  schemaVersion: 1
+  schemaVersion: number
 }
 
 export interface ImageRecord {
@@ -89,7 +91,7 @@ export interface ItemDraft {
 export interface BackupManifest {
   app: 'Fashion Archive'
   backupVersion: 1
-  schemaVersion: 1
+  schemaVersion: number
   createdAt: string
   appVersion: string
   itemCount: number

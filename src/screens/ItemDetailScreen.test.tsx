@@ -6,7 +6,7 @@ import { ItemDetailScreen } from './ItemDetailScreen'
 
 function item(id: string, name: string): ItemRecord {
   const now = new Date('2026-10-21T00:00:00.000Z')
-  return { id, name, brand: '', categoryId: null, size: '', color: '', originalPrice: null, purchasePrice: null, purchaseDate: null, purchaseMethod: null, purchaseSource: '', notes: '', isFavorite: false, coverImageId: null, createdAt: now, updatedAt: now, deletedAt: null, schemaVersion: 1 }
+  return { id, name, brand: '', categoryId: null, size: '', color: '', originalPrice: null, purchasePrice: null, purchaseDate: null, purchaseMethod: null, purchaseSource: '', notes: '', isFavorite: false, ownershipStatus: 'owned', coverImageId: null, createdAt: now, updatedAt: now, deletedAt: null, schemaVersion: 2 }
 }
 
 describe('item detail navigation', () => {
@@ -30,5 +30,13 @@ describe('item detail navigation', () => {
     expect(await screen.findByText('最初のアイテム')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: '次のアイテム' }))
     expect(window.location.hash).toBe('#/item/second')
+  })
+
+  it('offers a wanted item conversion into the collection', async () => {
+    await saveItem({ ...item('wanted', 'ほしいジャケット'), ownershipStatus: 'wanted', originalPrice: 30000 }, [])
+    render(<ItemDetailScreen id="wanted" />)
+    expect(await screen.findByText('ほしいジャケット')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: '購入済みにする' }))
+    expect(window.location.hash).toBe('#/acquire/wanted')
   })
 })
