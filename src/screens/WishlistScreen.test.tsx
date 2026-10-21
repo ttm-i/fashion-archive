@@ -7,7 +7,7 @@ import { WishlistScreen } from './WishlistScreen'
 function item(id: string, name: string, ownershipStatus: OwnershipStatus): ItemRecord {
   const now = new Date('2026-10-22T00:00:00.000Z')
   return {
-    id, name, brand: '', categoryId: null, size: '', color: '', originalPrice: null, purchasePrice: null, purchaseDate: null,
+    id, name, brand: '', categoryId: null, size: '', color: '', materials: [], originalPrice: null, purchasePrice: null, purchaseDate: null,
     purchaseMethod: null, purchaseSource: '', notes: '', isFavorite: false, ownershipStatus, coverImageId: null,
     createdAt: now, updatedAt: now, deletedAt: null, schemaVersion: 2,
   }

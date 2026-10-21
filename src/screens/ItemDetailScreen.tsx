@@ -116,6 +116,7 @@ export function ItemDetailScreen({ id }: { id: string }) {
           {item.purchaseSource && <Fact label={isWanted ? 'CANDIDATE STORE' : 'STORE'} value={item.purchaseSource} />}
         </div>
 
+        {(item.materials ?? []).length > 0 && <div className="detail-materials"><span>MATERIAL</span><div>{item.materials.map((material) => <p key={material.id}><strong>{material.name}</strong>{material.percentage !== null && <span>{material.percentage}%</span>}</p>)}</div></div>}
         {item.notes && <div className="detail-notes"><span>NOTES</span><p>{item.notes}</p></div>}
         {(previousId || nextId) && <nav className="detail-item-nav" aria-label="前後のアイテム"><button type="button" disabled={!previousId} onClick={() => openAdjacent(previousId)}><ChevronLeft aria-hidden="true" />前のアイテム</button><span>{navigationIndex + 1} / {navigationIds.length}</span><button type="button" disabled={!nextId} onClick={() => openAdjacent(nextId)}>次のアイテム<ChevronRight aria-hidden="true" /></button></nav>}
         {isWanted && <button className="primary-button block acquire-button" type="button" onClick={() => navigate(`acquire/${id}`, true)}>購入済みにする</button>}

@@ -1,6 +1,7 @@
 import { BlobReader, BlobWriter, TextReader, TextWriter, ZipReader, ZipWriter } from '@zip.js/zip.js'
 import { DATABASE_SCHEMA_VERSION, db, updateBackupTimestamp } from '../db'
-import type { BackupManifest, CategoryRecord, ImageRecord, ItemRecord, OwnershipStatus, SettingRecord } from '../types'
+import type { BackupManifest, CategoryRecord, ImageRecord, ItemRecord, MaterialEntry, OwnershipStatus, SettingRecord } from '../types'
+import { formatMaterials } from './materials'
 
 interface SerializedImage {
   id: string
@@ -15,8 +16,9 @@ interface SerializedImage {
   thumbnailFile: string
 }
 
-interface SerializedItem extends Omit<ItemRecord, 'createdAt' | 'updatedAt' | 'deletedAt' | 'ownershipStatus'> {
+interface SerializedItem extends Omit<ItemRecord, 'createdAt' | 'updatedAt' | 'deletedAt' | 'ownershipStatus' | 'materials'> {
   ownershipStatus?: OwnershipStatus
+  materials?: MaterialEntry[]
   createdAt: string
   updatedAt: string
   deletedAt: string | null
@@ -42,7 +44,7 @@ export async function createBackup() {
   const manifest: BackupManifest = {
     app: 'Fashion Archive',
     backupVersion: 1,
-    schemaVersion: 2,
+    schemaVersion: 3,
     createdAt: new Date().toISOString(),
     appVersion: __APP_VERSION__,
     itemCount: items.length,
@@ -118,7 +120,7 @@ export async function inspectBackup(file: File): Promise<BackupContents> {
     if (manifest.app !== 'Fashion Archive' || manifest.backupVersion !== 1) {
       throw new Error('Fashion Archiveの対応バックアップではありません。')
     }
-    if (manifest.schemaVersion > 2) throw new Error('このバックアップには、より新しいアプリが必要です。')
+    if (manifest.schemaVersion > 3) throw new Error('このバックアップには、より新しいアプリが必要です。')
     const [items, images, categories, settings] = await Promise.all([
       parseJsonEntry<SerializedItem[]>(entries, 'items.json'),
       parseJsonEntry<SerializedImage[]>(entries, 'images.json'),
@@ -164,7 +166,8 @@ export async function restoreBackup(file: File) {
     const items: ItemRecord[] = metadata.items.map((item) => ({
       ...item,
       ownershipStatus: item.ownershipStatus ?? 'owned',
-      schemaVersion: item.ownershipStatus ? item.schemaVersion : 2,
+      materials: item.materials ?? [],
+      schemaVersion: 3,
       createdAt: new Date(item.createdAt),
       updatedAt: new Date(item.updatedAt),
       deletedAt: item.deletedAt ? new Date(item.deletedAt) : null,
@@ -198,6 +201,7 @@ export async function exportCsv() {
     item.categoryId ? categoryNames.get(item.categoryId) ?? '' : '',
     item.size,
     item.color,
+    formatMaterials(item.materials),
     item.originalPrice ?? '',
     item.purchasePrice ?? '',
     item.purchaseDate ?? '',
@@ -209,7 +213,7 @@ export async function exportCsv() {
     item.createdAt.toISOString(),
     item.updatedAt.toISOString(),
   ])
-  const header = ['アイテム名', 'ブランド', 'カテゴリー', 'サイズ', 'カラー', '定価・想定価格', '購入価格', '購入日', '購入方法', '購入先・候補先', '状態', 'お気に入り', 'メモ', '登録日時', '更新日時']
+  const header = ['アイテム名', 'ブランド', 'カテゴリー', 'サイズ', 'カラー', '素材・混率', '定価・想定価格', '購入価格', '購入日', '購入方法', '購入先・候補先', '状態', 'お気に入り', 'メモ', '登録日時', '更新日時']
   const content = `\uFEFF${[header, ...rows].map((row) => row.map(quote).join(',')).join('\r\n')}`
   const url = URL.createObjectURL(new Blob([content], { type: 'text/csv;charset=utf-8' }))
   const anchor = document.createElement('a')

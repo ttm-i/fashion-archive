@@ -9,6 +9,18 @@ export const PURCHASE_METHODS = [
 export type PurchaseMethod = (typeof PURCHASE_METHODS)[number]
 export type OwnershipStatus = 'owned' | 'wanted'
 
+export interface MaterialEntry {
+  id: string
+  name: string
+  percentage: number | null
+}
+
+export interface MaterialDraft {
+  id: string
+  name: string
+  percentage: string
+}
+
 export interface ItemRecord {
   id: string
   name: string
@@ -16,6 +28,7 @@ export interface ItemRecord {
   categoryId: string | null
   size: string
   color: string
+  materials: MaterialEntry[]
   originalPrice: number | null
   purchasePrice: number | null
   purchaseDate: string | null
@@ -79,6 +92,7 @@ export interface ItemDraft {
   categoryId: string | null
   size: string
   color: string
+  materials: MaterialDraft[]
   originalPrice: string
   purchasePrice: string
   purchaseDate: string

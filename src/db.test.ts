@@ -10,6 +10,7 @@ const makeItem = (): ItemRecord => ({
   categoryId: 'outerwear',
   size: 'M',
   color: 'ブラック',
+  materials: [],
   originalPrice: 20000,
   purchasePrice: 15000,
   purchaseDate: '2026-10-21',
@@ -34,7 +35,7 @@ describe('database operations', () => {
 
   it('seeds default categories', async () => {
     expect(await db.categories.count()).toBe(7)
-    expect((await db.settings.get('schemaVersion'))?.value).toBe(3)
+    expect((await db.settings.get('schemaVersion'))?.value).toBe(4)
   })
 
   it('saves, trashes, restores and permanently empties items', async () => {
@@ -56,7 +57,7 @@ describe('database operations', () => {
       key: 'new',
       itemId: 'draft-item',
       draft: {
-        name: '入力途中のコート', brand: '', categoryId: null, size: '', color: '', originalPrice: '', purchasePrice: '', purchaseDate: '', purchaseMethod: '', purchaseSource: '', notes: '', isFavorite: false,
+        name: '入力途中のコート', brand: '', categoryId: null, size: '', color: '', materials: [], originalPrice: '', purchasePrice: '', purchaseDate: '', purchaseMethod: '', purchaseSource: '', notes: '', isFavorite: false,
       },
       images: [{
         id: 'draft-image', itemId: 'draft-item', sortOrder: 0,
@@ -113,6 +114,7 @@ describe('database operations', () => {
     await legacy.open()
     const legacyItem = makeItem() as Partial<ItemRecord>
     delete legacyItem.ownershipStatus
+    delete legacyItem.materials
     await legacy.table('items').put(legacyItem)
     await legacy.table('settings').put({ key: 'schemaVersion', value: 1 })
     legacy.close()
@@ -121,8 +123,9 @@ describe('database operations', () => {
     await initializeDatabase()
 
     expect(await db.items.count()).toBe(1)
-    expect((await db.settings.get('schemaVersion'))?.value).toBe(3)
+    expect((await db.settings.get('schemaVersion'))?.value).toBe(4)
     expect((await db.items.toArray())[0]?.ownershipStatus).toBe('owned')
+    expect((await db.items.toArray())[0]?.materials).toEqual([])
     await expect(db.drafts.count()).resolves.toBe(0)
   })
 })

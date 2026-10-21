@@ -6,7 +6,7 @@ import { ItemDetailScreen } from './ItemDetailScreen'
 
 function item(id: string, name: string): ItemRecord {
   const now = new Date('2026-10-21T00:00:00.000Z')
-  return { id, name, brand: '', categoryId: null, size: '', color: '', originalPrice: null, purchasePrice: null, purchaseDate: null, purchaseMethod: null, purchaseSource: '', notes: '', isFavorite: false, ownershipStatus: 'owned', coverImageId: null, createdAt: now, updatedAt: now, deletedAt: null, schemaVersion: 2 }
+  return { id, name, brand: '', categoryId: null, size: '', color: '', materials: [], originalPrice: null, purchasePrice: null, purchaseDate: null, purchaseMethod: null, purchaseSource: '', notes: '', isFavorite: false, ownershipStatus: 'owned', coverImageId: null, createdAt: now, updatedAt: now, deletedAt: null, schemaVersion: 2 }
 }
 
 describe('item detail navigation', () => {

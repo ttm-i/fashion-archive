@@ -5,7 +5,7 @@ import { EMPTY_COLLECTION_FILTER, filterAndSortItems, loadCollectionViewState, s
 function item(id: string, color: string, date: string, price: number): ItemRecord {
   const now = new Date('2026-10-21T00:00:00.000Z')
   return {
-    id, name: `アイテム${id}`, brand: 'TEST', categoryId: 'tops', size: '', color,
+    id, name: `アイテム${id}`, brand: 'TEST', categoryId: 'tops', size: '', color, materials: [],
     originalPrice: null, purchasePrice: price, purchaseDate: date, purchaseMethod: '実店舗', purchaseSource: '', notes: '', isFavorite: false,
     ownershipStatus: 'owned', coverImageId: null, createdAt: now, updatedAt: now, deletedAt: null, schemaVersion: 2,
   }

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Camera, ChevronLeft, ChevronRight, Heart, ImagePlus, Star, Trash2 } from 'lucide-react'
+import { Camera, ChevronLeft, ChevronRight, Heart, ImagePlus, Plus, Star, Trash2 } from 'lucide-react'
 import { AppHeader } from '../components/AppHeader'
 import { ItemImage } from '../components/ItemImage'
 import { SuggestionInput } from '../components/SuggestionInput'
@@ -10,9 +10,10 @@ import type { EditorDraftRecord, ImageRecord, ItemDraft, ItemRecord, PurchaseMet
 import { PURCHASE_METHODS } from '../types'
 import { parseOptionalPrice, uniqueSuggestions } from '../utils/format'
 import { prepareImage } from '../utils/images'
+import { parseMaterials } from '../utils/materials'
 
 const blankDraft: ItemDraft = {
-  name: '', brand: '', categoryId: null, size: '', color: '', originalPrice: '', purchasePrice: '', purchaseDate: '', purchaseMethod: '', purchaseSource: '', notes: '', isFavorite: false,
+  name: '', brand: '', categoryId: null, size: '', color: '', materials: [], originalPrice: '', purchasePrice: '', purchaseDate: '', purchaseMethod: '', purchaseSource: '', notes: '', isFavorite: false,
 }
 
 export function ItemEditorScreen({ id, mode = 'owned' }: { id?: string; mode?: 'owned' | 'wanted' | 'acquire' }) {
@@ -45,6 +46,7 @@ export function ItemEditorScreen({ id, mode = 'owned' }: { id?: string; mode?: '
       categoryId: existing.categoryId,
       size: existing.size,
       color: existing.color,
+      materials: (existing.materials ?? []).map((material) => ({ ...material, percentage: material.percentage?.toString() ?? '' })),
       originalPrice: existing.originalPrice?.toString() ?? '',
       purchasePrice: existing.purchasePrice?.toString() ?? '',
       purchaseDate: existing.purchaseDate ?? '',
@@ -91,6 +93,7 @@ export function ItemEditorScreen({ id, mode = 'owned' }: { id?: string; mode?: '
   const brandSuggestions = useMemo(() => uniqueSuggestions(allItems.map((item) => item.brand)), [allItems])
   const colorSuggestions = useMemo(() => uniqueSuggestions(allItems.map((item) => item.color)), [allItems])
   const sourceSuggestions = useMemo(() => uniqueSuggestions(allItems.map((item) => item.purchaseSource)), [allItems])
+  const materialSuggestions = useMemo(() => uniqueSuggestions(allItems.flatMap((item) => (item.materials ?? []).map((material) => material.name))), [allItems])
 
   const update = <K extends keyof ItemDraft>(key: K, value: ItemDraft[K]) => {
     setDraft((current) => ({ ...current, [key]: value }))
@@ -107,7 +110,7 @@ export function ItemEditorScreen({ id, mode = 'owned' }: { id?: string; mode?: '
   const resumeDraft = () => {
     if (!pendingDraft) return
     setItemId(pendingDraft.itemId)
-    setDraft(pendingDraft.draft)
+    setDraft({ ...pendingDraft.draft, materials: pendingDraft.draft.materials ?? [] })
     setImages(pendingDraft.images)
     setDirty(true)
     setPendingDraft(null)
@@ -156,6 +159,18 @@ export function ItemEditorScreen({ id, mode = 'owned' }: { id?: string; mode?: '
     setDirty(true)
   }
 
+  const addMaterial = () => {
+    update('materials', [...draft.materials, { id: crypto.randomUUID(), name: '', percentage: '' }])
+  }
+
+  const updateMaterial = (id: string, key: 'name' | 'percentage', value: string) => {
+    update('materials', draft.materials.map((material) => material.id === id ? { ...material, [key]: value } : material))
+  }
+
+  const removeMaterial = (id: string) => {
+    update('materials', draft.materials.filter((material) => material.id !== id))
+  }
+
   const submit = async () => {
     const name = draft.name.trim()
     if (!name) {
@@ -166,6 +181,7 @@ export function ItemEditorScreen({ id, mode = 'owned' }: { id?: string; mode?: '
     setSaving(true)
     setError('')
     try {
+      const materials = parseMaterials(draft.materials)
       const now = new Date()
       const item: ItemRecord = {
         id: itemId,
@@ -174,6 +190,7 @@ export function ItemEditorScreen({ id, mode = 'owned' }: { id?: string; mode?: '
         categoryId: draft.categoryId,
         size: draft.size.trim(),
         color: draft.color.trim(),
+        materials,
         originalPrice: parseOptionalPrice(draft.originalPrice),
         purchasePrice: isWanted ? null : parseOptionalPrice(draft.purchasePrice),
         purchaseDate: isWanted ? null : draft.purchaseDate || null,
@@ -186,7 +203,7 @@ export function ItemEditorScreen({ id, mode = 'owned' }: { id?: string; mode?: '
         createdAt: existing?.createdAt ?? now,
         updatedAt: now,
         deletedAt: existing?.deletedAt ?? null,
-        schemaVersion: 2,
+        schemaVersion: 3,
       }
       await saveItem(item, images.map((image, sortOrder) => ({ ...image, itemId, sortOrder })))
       await db.drafts.delete(draftKey)
@@ -263,6 +280,22 @@ export function ItemEditorScreen({ id, mode = 'owned' }: { id?: string; mode?: '
             <SuggestionInput id="purchase-source" label="購入先" value={draft.purchaseSource} suggestions={sourceSuggestions} onChange={(value) => update('purchaseSource', value)} placeholder="例：公式オンラインストア" />
           </div>
         </details>}
+
+        <details className="editor-section disclosure">
+          <summary><span><small>MATERIAL</small>素材・混率</span></summary>
+          <div className="form-stack material-editor">
+            {draft.materials.map((material, index) => (
+              <div className="material-row" key={material.id}>
+                <SuggestionInput id={`material-${material.id}`} label={`素材 ${index + 1}`} value={material.name} suggestions={materialSuggestions} onChange={(value) => updateMaterial(material.id, 'name', value)} placeholder="例：ウール" />
+                <label><span>混率（%）</span><input inputMode="decimal" value={material.percentage} onChange={(event) => updateMaterial(material.id, 'percentage', event.target.value.replace(/[^0-9.,]/g, ''))} placeholder="100" /></label>
+                <button className="material-remove" type="button" onClick={() => removeMaterial(material.id)} aria-label={`${index + 1}件目の素材を削除`}><Trash2 aria-hidden="true" /></button>
+              </div>
+            ))}
+            {draft.materials.length === 0 && <p className="material-empty">素材を記録する場合は、下のボタンから追加してください。</p>}
+            {draft.materials.length < 10 && <button className="secondary-button material-add" type="button" onClick={addMaterial}><Plus aria-hidden="true" />素材を追加</button>}
+            <p className="field-help">素材名だけでも保存できます。混率を入力する場合は、すべての素材に入力し、合計を100%にしてください。</p>
+          </div>
+        </details>
 
         <details className="editor-section disclosure">
           <summary><span><small>NOTES</small>その他</span></summary>

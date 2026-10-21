@@ -35,7 +35,7 @@ describe('item editor draft recovery', () => {
   it('moves a wanted item into the owned collection after purchase details are saved', async () => {
     const now = new Date('2026-10-22T00:00:00.000Z')
     const wanted: ItemRecord = {
-      id: 'wanted-item', name: '購入候補のコート', brand: 'TEST', categoryId: 'outerwear', size: '', color: '',
+      id: 'wanted-item', name: '購入候補のコート', brand: 'TEST', categoryId: 'outerwear', size: '', color: '', materials: [],
       originalPrice: 50000, purchasePrice: null, purchaseDate: null, purchaseMethod: null, purchaseSource: '候補店', notes: '',
       isFavorite: false, ownershipStatus: 'wanted', coverImageId: null, createdAt: now, updatedAt: now, deletedAt: null, schemaVersion: 2,
     }
@@ -59,5 +59,19 @@ describe('item editor draft recovery', () => {
 
     await waitFor(() => expect(replaceState).toHaveBeenCalled())
     expect(replaceState.mock.calls.at(-1)?.[2]).toMatch(/^#\/item\//)
+  })
+
+  it('records a material blend whose percentages total 100', async () => {
+    render(<ItemEditorScreen />)
+    fireEvent.change(await screen.findByLabelText(/アイテム名/), { target: { value: '素材テスト' } })
+    fireEvent.click(screen.getByRole('button', { name: '素材を追加' }))
+    fireEvent.change(await screen.findByLabelText('素材 1'), { target: { value: 'ウール' } })
+    fireEvent.change(screen.getByLabelText('混率（%）'), { target: { value: '100' } })
+    fireEvent.click(screen.getByRole('button', { name: '保存する' }))
+
+    await waitFor(async () => {
+      const saved = await db.items.where('name').equals('素材テスト').first()
+      expect(saved?.materials).toEqual([{ id: expect.any(String), name: 'ウール', percentage: 100 }])
+    })
   })
 })
