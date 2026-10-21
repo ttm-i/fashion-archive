@@ -1,5 +1,5 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { db, initializeDatabase, saveItem } from '../db'
 import type { ItemRecord } from '../types'
 import { ItemDetailScreen } from './ItemDetailScreen'
@@ -23,6 +23,7 @@ describe('item detail navigation', () => {
   afterEach(() => {
     cleanup()
     sessionStorage.clear()
+    vi.restoreAllMocks()
   })
 
   it('moves to the next item in the current collection order', async () => {
@@ -35,8 +36,10 @@ describe('item detail navigation', () => {
   it('offers a wanted item conversion into the collection', async () => {
     await saveItem({ ...item('wanted', 'ほしいジャケット'), ownershipStatus: 'wanted', originalPrice: 30000 }, [])
     render(<ItemDetailScreen id="wanted" />)
+    const replaceState = vi.spyOn(window.history, 'replaceState')
     expect(await screen.findByText('ほしいジャケット')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: '購入済みにする' }))
     expect(window.location.hash).toBe('#/acquire/wanted')
+    expect(replaceState).toHaveBeenCalledWith(null, '', '#/acquire/wanted')
   })
 })

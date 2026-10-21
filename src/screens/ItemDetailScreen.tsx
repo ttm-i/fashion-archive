@@ -118,8 +118,8 @@ export function ItemDetailScreen({ id }: { id: string }) {
 
         {item.notes && <div className="detail-notes"><span>NOTES</span><p>{item.notes}</p></div>}
         {(previousId || nextId) && <nav className="detail-item-nav" aria-label="前後のアイテム"><button type="button" disabled={!previousId} onClick={() => openAdjacent(previousId)}><ChevronLeft aria-hidden="true" />前のアイテム</button><span>{navigationIndex + 1} / {navigationIds.length}</span><button type="button" disabled={!nextId} onClick={() => openAdjacent(nextId)}>次のアイテム<ChevronRight aria-hidden="true" /></button></nav>}
-        {isWanted && <button className="primary-button block acquire-button" type="button" onClick={() => navigate(`acquire/${id}`)}>購入済みにする</button>}
-        <button className={isWanted ? 'secondary-button block' : 'primary-button block'} type="button" onClick={() => navigate(isWanted ? `edit-wanted/${id}` : `edit/${id}`)}><Pencil aria-hidden="true" />編集する</button>
+        {isWanted && <button className="primary-button block acquire-button" type="button" onClick={() => navigate(`acquire/${id}`, true)}>購入済みにする</button>}
+        <button className={isWanted ? 'secondary-button block' : 'primary-button block'} type="button" onClick={() => navigate(isWanted ? `edit-wanted/${id}` : `edit/${id}`, true)}><Pencil aria-hidden="true" />編集する</button>
         <button className="danger-link" type="button" onClick={remove}><Trash2 aria-hidden="true" />ゴミ箱へ移動</button>
       </section>
 

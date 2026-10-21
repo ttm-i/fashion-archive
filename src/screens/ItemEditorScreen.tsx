@@ -101,7 +101,7 @@ export function ItemEditorScreen({ id, mode = 'owned' }: { id?: string; mode?: '
   const goBack = async () => {
     if (dirty && !window.confirm('入力中の変更を破棄しますか？')) return
     if (dirty) await db.drafts.delete(draftKey)
-    navigate(id ? `item/${id}` : isWanted ? 'wishlist' : 'collection')
+    navigate(id ? `item/${id}` : isWanted ? 'wishlist' : 'collection', true)
   }
 
   const resumeDraft = () => {
@@ -191,7 +191,12 @@ export function ItemEditorScreen({ id, mode = 'owned' }: { id?: string; mode?: '
       await saveItem(item, images.map((image, sortOrder) => ({ ...image, itemId, sortOrder })))
       await db.drafts.delete(draftKey)
       setDirty(false)
-      navigate(`item/${itemId}`)
+      if (isAcquire) {
+        navigate('collection', true)
+        navigate(`item/${itemId}`)
+      } else {
+        navigate(`item/${itemId}`, true)
+      }
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : '保存できませんでした。入力内容はこの画面に残っています。')
     } finally {

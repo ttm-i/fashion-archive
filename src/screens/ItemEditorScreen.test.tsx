@@ -1,5 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { db, initializeDatabase, saveItem } from '../db'
 import type { ItemRecord } from '../types'
 import { ItemEditorScreen } from './ItemEditorScreen'
@@ -11,7 +11,10 @@ describe('item editor draft recovery', () => {
     await initializeDatabase()
   })
 
-  afterEach(() => cleanup())
+  afterEach(() => {
+    cleanup()
+    vi.restoreAllMocks()
+  })
 
   it('auto-saves an unfinished item and restores it after reopening', async () => {
     const first = render(<ItemEditorScreen />)
@@ -38,13 +41,23 @@ describe('item editor draft recovery', () => {
     }
     await saveItem(wanted, [])
     render(<ItemEditorScreen id={wanted.id} mode="acquire" />)
+    const replaceState = vi.spyOn(window.history, 'replaceState')
 
     const price = await screen.findByLabelText(/購入価格/)
     fireEvent.change(price, { target: { value: '42000' } })
     fireEvent.click(screen.getByRole('button', { name: 'コレクションへ移す' }))
 
-    await waitFor(async () => {
-      expect(await db.items.get(wanted.id)).toMatchObject({ ownershipStatus: 'owned', purchasePrice: 42000 })
-    })
+    await waitFor(() => expect(replaceState).toHaveBeenCalledWith(null, '', '#/collection'))
+    expect(await db.items.get(wanted.id)).toMatchObject({ ownershipStatus: 'owned', purchasePrice: 42000 })
+  })
+
+  it('replaces the registration screen in browser history after saving', async () => {
+    render(<ItemEditorScreen />)
+    const replaceState = vi.spyOn(window.history, 'replaceState')
+    fireEvent.change(await screen.findByLabelText(/アイテム名/), { target: { value: '新しいシャツ' } })
+    fireEvent.click(screen.getByRole('button', { name: '保存する' }))
+
+    await waitFor(() => expect(replaceState).toHaveBeenCalled())
+    expect(replaceState.mock.calls.at(-1)?.[2]).toMatch(/^#\/item\//)
   })
 })
