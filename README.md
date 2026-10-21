@@ -2,6 +2,8 @@
 
 写真を中心に、所有しているファッションアイテムを記録・検索・集計する個人用PWAです。iPhoneのホーム画面から使うことを前提にしています。
 
+公開アプリ: [https://ttm-i.github.io/fashion-archive/](https://ttm-i.github.io/fashion-archive/)
+
 ## 現在の機能
 
 - アイテムの登録・編集・削除（写真は1件につき最大3枚）
@@ -44,7 +46,7 @@ pnpm run build
 3. 公開用ビルド
 4. GitHub Pagesへ公開
 
-リポジトリの作成と最初の公開は、PCでの画面確認後に行います。
+GitHub Pagesへの初回公開は完了しています。
 
 ## 設計資料
 
