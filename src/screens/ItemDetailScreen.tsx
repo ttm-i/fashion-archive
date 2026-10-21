@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { ChevronLeft, ChevronRight, Heart, Maximize2, Pencil, Trash2, X } from 'lucide-react'
 import { AppHeader } from '../components/AppHeader'
 import { ItemImage } from '../components/ItemImage'
-import { db, moveItemToTrash, restoreItem } from '../db'
+import { db, markDataChanged, moveItemToTrash, restoreItem } from '../db'
 import { navigate } from '../hooks/useRoute'
 import { formatDate, formatYen } from '../utils/format'
 
@@ -25,7 +25,10 @@ export function ItemDetailScreen({ id }: { id: string }) {
   if (item === undefined) return <main className="screen loading-screen"><p>読み込んでいます…</p></main>
   if (!item) return <main className="screen empty-state"><h1>アイテムが見つかりません</h1><button className="primary-button" type="button" onClick={() => navigate('collection')}>コレクションへ戻る</button></main>
 
-  const toggleFavorite = () => db.items.update(id, { isFavorite: !item.isFavorite, updatedAt: new Date() })
+  const toggleFavorite = async () => {
+    await db.items.update(id, { isFavorite: !item.isFavorite, updatedAt: new Date() })
+    await markDataChanged()
+  }
   const remove = async () => {
     if (!window.confirm('このアイテムをゴミ箱へ移動しますか？')) return
     await moveItemToTrash(id)

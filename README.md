@@ -14,6 +14,8 @@
 - 写真を含むZIPバックアップの作成・復元
 - CSV出力
 - オフライン動作とホーム画面への追加
+- 入力途中の自動保存・再開
+- データ変更に応じたバックアップ推奨案内
 
 データと写真は、利用している端末のブラウザ内（IndexedDB）にだけ保存されます。ブラウザのWebサイトデータを消すと失われるため、定期的にZIPバックアップを作成してください。
 
@@ -53,6 +55,7 @@ GitHub Pagesへの初回公開は完了しています。
 - [v1仕様書](docs/Fashion-Archive-v1-spec.md)
 - [画面設計](docs/Fashion-Archive-screen-design.md)
 - [実装・確認状況](docs/implementation-status.md)
+- [改修ロードマップ](docs/Fashion-Archive-roadmap.md)
 
 ## 取り扱い上の注意
 

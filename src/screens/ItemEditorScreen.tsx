@@ -5,7 +5,7 @@ import { AppHeader } from '../components/AppHeader'
 import { ItemImage } from '../components/ItemImage'
 import { db, saveItem } from '../db'
 import { navigate } from '../hooks/useRoute'
-import type { ImageRecord, ItemDraft, ItemRecord, PurchaseMethod } from '../types'
+import type { EditorDraftRecord, ImageRecord, ItemDraft, ItemRecord, PurchaseMethod } from '../types'
 import { PURCHASE_METHODS } from '../types'
 import { parseOptionalPrice, uniqueSuggestions } from '../utils/format'
 import { prepareImage } from '../utils/images'
@@ -15,6 +15,7 @@ const blankDraft: ItemDraft = {
 }
 
 export function ItemEditorScreen({ id }: { id?: string }) {
+  const draftKey = id ? `edit:${id}` : 'new'
   const editorData = useLiveQuery(async () => id ? {
     item: await db.items.get(id),
     images: await db.images.where('itemId').equals(id).sortBy('sortOrder'),
@@ -22,7 +23,7 @@ export function ItemEditorScreen({ id }: { id?: string }) {
   const existing = editorData?.item
   const categories = useLiveQuery(() => db.categories.orderBy('sortOrder').toArray(), [], [])
   const allItems = useLiveQuery(() => db.items.toArray(), [], [])
-  const [itemId] = useState(() => id ?? crypto.randomUUID())
+  const [itemId, setItemId] = useState(() => id ?? crypto.randomUUID())
   const [draft, setDraft] = useState<ItemDraft>(blankDraft)
   const [images, setImages] = useState<ImageRecord[]>([])
   const [loaded, setLoaded] = useState(!id)
@@ -30,6 +31,8 @@ export function ItemEditorScreen({ id }: { id?: string }) {
   const [saving, setSaving] = useState(false)
   const [processing, setProcessing] = useState(false)
   const [error, setError] = useState('')
+  const [draftChecked, setDraftChecked] = useState(false)
+  const [pendingDraft, setPendingDraft] = useState<EditorDraftRecord | null>(null)
 
   useEffect(() => {
     if (!id || !existing || !editorData || loaded) return
@@ -52,6 +55,27 @@ export function ItemEditorScreen({ id }: { id?: string }) {
   }, [id, existing, editorData, loaded])
 
   useEffect(() => {
+    if (!loaded || draftChecked) return
+    let cancelled = false
+    db.drafts.get(draftKey).then((saved) => {
+      if (cancelled) return
+      if (saved) setPendingDraft(saved)
+      setDraftChecked(true)
+    }).catch(() => setDraftChecked(true))
+    return () => { cancelled = true }
+  }, [draftKey, loaded, draftChecked])
+
+  useEffect(() => {
+    if (!loaded || !draftChecked || pendingDraft || !dirty) return
+    const timer = window.setTimeout(() => {
+      db.drafts.put({ key: draftKey, itemId, draft, images, updatedAt: new Date() }).catch(() => {
+        setError('入力内容の自動保存に失敗しました。通常の保存をお試しください。')
+      })
+    }, 700)
+    return () => window.clearTimeout(timer)
+  }, [draft, draftChecked, draftKey, dirty, images, itemId, loaded, pendingDraft])
+
+  useEffect(() => {
     if (!dirty) return
     const warnBeforeUnload = (event: BeforeUnloadEvent) => {
       event.preventDefault()
@@ -71,9 +95,25 @@ export function ItemEditorScreen({ id }: { id?: string }) {
     setError('')
   }
 
-  const goBack = () => {
+  const goBack = async () => {
     if (dirty && !window.confirm('入力中の変更を破棄しますか？')) return
+    if (dirty) await db.drafts.delete(draftKey)
     navigate(id ? `item/${id}` : 'collection')
+  }
+
+  const resumeDraft = () => {
+    if (!pendingDraft) return
+    setItemId(pendingDraft.itemId)
+    setDraft(pendingDraft.draft)
+    setImages(pendingDraft.images)
+    setDirty(true)
+    setPendingDraft(null)
+  }
+
+  const discardDraft = async () => {
+    await db.drafts.delete(draftKey)
+    setPendingDraft(null)
+    setDirty(false)
   }
 
   const addImages = async (files: FileList | null) => {
@@ -145,6 +185,7 @@ export function ItemEditorScreen({ id }: { id?: string }) {
         schemaVersion: 1,
       }
       await saveItem(item, images.map((image, sortOrder) => ({ ...image, itemId, sortOrder })))
+      await db.drafts.delete(draftKey)
       setDirty(false)
       navigate(`item/${itemId}`)
     } catch (reason) {
@@ -216,6 +257,7 @@ export function ItemEditorScreen({ id }: { id?: string }) {
         {error && <p className="form-error" role="alert">{error}</p>}
         <div className="editor-save"><button className="primary-button block" type="submit" disabled={saving || processing}>{saving ? '保存しています…' : '保存する'}</button></div>
       </form>
+      {pendingDraft && <div className="sheet-backdrop draft-recovery"><section className="bottom-sheet" role="dialog" aria-modal="true" aria-labelledby="draft-title"><div className="sheet-handle" /><span className="draft-recovery__eyebrow">AUTO SAVED</span><h2 id="draft-title">入力途中の内容があります</h2><p>前回入力していた内容と写真を再開できます。</p><div className="sheet-actions"><button className="secondary-button" type="button" onClick={discardDraft}>破棄する</button><button className="primary-button" type="button" onClick={resumeDraft}>入力を再開</button></div></section></div>}
     </main>
   )
 }

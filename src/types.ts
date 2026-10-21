@@ -54,6 +54,14 @@ export interface SettingRecord {
   value: unknown
 }
 
+export interface EditorDraftRecord {
+  key: string
+  itemId: string
+  draft: ItemDraft
+  images: ImageRecord[]
+  updatedAt: Date
+}
+
 export type SortMode =
   | 'purchase-newest'
   | 'purchase-oldest'

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { ChevronDown, ChevronUp, Plus, Save, Trash2 } from 'lucide-react'
 import { AppHeader } from '../components/AppHeader'
-import { db } from '../db'
+import { db, markDataChanged } from '../db'
 import { navigate } from '../hooks/useRoute'
 
 export function CategoriesScreen() {
@@ -12,11 +12,15 @@ export function CategoriesScreen() {
     const name = newName.trim()
     if (!name) return
     await db.categories.add({ id: crypto.randomUUID(), name, sortOrder: categories.length, isActive: true })
+    await markDataChanged()
     setNewName('')
   }
   const rename = async (id: string, name: string) => {
     const trimmed = name.trim()
-    if (trimmed) await db.categories.update(id, { name: trimmed })
+    if (trimmed) {
+      await db.categories.update(id, { name: trimmed })
+      await markDataChanged()
+    }
   }
   const remove = async (id: string) => {
     const count = await db.items.where('categoryId').equals(id).count()
@@ -24,7 +28,10 @@ export function CategoriesScreen() {
       window.alert(`${count}件のアイテムで使用中のため削除できません。先にアイテムのカテゴリーを変更してください。`)
       return
     }
-    if (window.confirm('このカテゴリーを削除しますか？')) await db.categories.delete(id)
+    if (window.confirm('このカテゴリーを削除しますか？')) {
+      await db.categories.delete(id)
+      await markDataChanged()
+    }
   }
   const move = async (index: number, offset: -1 | 1) => {
     const other = categories[index + offset]
@@ -34,6 +41,7 @@ export function CategoriesScreen() {
       await db.categories.update(current.id, { sortOrder: other.sortOrder })
       await db.categories.update(other.id, { sortOrder: current.sortOrder })
     })
+    await markDataChanged()
   }
   return <main className="screen sub-screen"><AppHeader title="カテゴリー管理" back={() => navigate('settings')} />
     <section className="sub-heading"><span>CATEGORIES</span><h1>カテゴリー</h1><p>表示順や名称を変更し、新しい分類を追加できます。</p></section>

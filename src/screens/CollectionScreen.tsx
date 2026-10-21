@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Heart, Plus, Search, SlidersHorizontal, X } from 'lucide-react'
-import { db } from '../db'
+import { db, markDataChanged } from '../db'
 import { navigate } from '../hooks/useRoute'
 import { PURCHASE_METHODS, type ImageRecord, type ItemRecord, type SortMode } from '../types'
 import { formatYen } from '../utils/format'
 import { ItemImage } from '../components/ItemImage'
 import { AppHeader } from '../components/AppHeader'
+import { BackupReminder } from '../components/BackupReminder'
 
 const SORT_LABELS: Record<SortMode, string> = {
   'purchase-newest': '購入日の新しい順',
@@ -104,6 +105,7 @@ export function CollectionScreen() {
       <section className="collection-heading">
         <div><h1>コレクション</h1><p>{filtered.length === items.length ? `${items.length} pieces` : `${filtered.length} / ${items.length} pieces`}</p></div>
       </section>
+      <BackupReminder />
 
       <label className="search-field">
         <Search aria-hidden="true" />
@@ -169,6 +171,7 @@ function ItemCard({ item, image }: { item: ItemRecord; image?: ImageRecord }) {
   const toggleFavorite = async (event: React.MouseEvent) => {
     event.stopPropagation()
     await db.items.update(item.id, { isFavorite: !item.isFavorite, updatedAt: new Date() })
+    await markDataChanged()
   }
   return (
     <article className="item-card" role="button" tabIndex={0} onClick={openDetail} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openDetail() } }}>

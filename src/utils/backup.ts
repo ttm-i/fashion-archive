@@ -1,5 +1,5 @@
 import { BlobReader, BlobWriter, TextReader, TextWriter, ZipReader, ZipWriter } from '@zip.js/zip.js'
-import { db, updateBackupTimestamp } from '../db'
+import { DATABASE_SCHEMA_VERSION, db, updateBackupTimestamp } from '../db'
 import type { BackupManifest, CategoryRecord, ImageRecord, ItemRecord, SettingRecord } from '../types'
 
 interface SerializedImage {
@@ -166,12 +166,15 @@ export async function restoreBackup(file: File) {
       updatedAt: new Date(item.updatedAt),
       deletedAt: item.deletedAt ? new Date(item.deletedAt) : null,
     }))
-    await db.transaction('rw', db.items, db.images, db.categories, db.settings, async () => {
-      await Promise.all([db.items.clear(), db.images.clear(), db.categories.clear(), db.settings.clear()])
+    await db.transaction('rw', db.items, db.images, db.categories, db.settings, db.drafts, async () => {
+      await Promise.all([db.items.clear(), db.images.clear(), db.categories.clear(), db.settings.clear(), db.drafts.clear()])
       if (items.length) await db.items.bulkAdd(items)
       if (images.length) await db.images.bulkAdd(images)
       if (metadata.categories.length) await db.categories.bulkAdd(metadata.categories)
       if (metadata.settings.length) await db.settings.bulkAdd(metadata.settings)
+      await db.settings.put({ key: 'schemaVersion', value: DATABASE_SCHEMA_VERSION })
+      await db.settings.put({ key: 'changesSinceBackup', value: 0 })
+      await db.settings.put({ key: 'lastBackupAt', value: metadata.manifest.createdAt })
     })
     return metadata.manifest
   } finally {

@@ -1,5 +1,7 @@
 import Dexie, { type EntityTable } from 'dexie'
-import type { CategoryRecord, ImageRecord, ItemRecord, SettingRecord } from './types'
+import type { CategoryRecord, EditorDraftRecord, ImageRecord, ItemRecord, SettingRecord } from './types'
+
+export const DATABASE_SCHEMA_VERSION = 2
 
 const DEFAULT_CATEGORIES: CategoryRecord[] = [
   { id: 'outerwear', name: 'アウター', sortOrder: 0, isActive: true },
@@ -16,6 +18,7 @@ class FashionArchiveDatabase extends Dexie {
   images!: EntityTable<ImageRecord, 'id'>
   categories!: EntityTable<CategoryRecord, 'id'>
   settings!: EntityTable<SettingRecord, 'key'>
+  drafts!: EntityTable<EditorDraftRecord, 'key'>
 
   constructor() {
     super('fashion-archive')
@@ -25,6 +28,13 @@ class FashionArchiveDatabase extends Dexie {
       categories: 'id, sortOrder, isActive',
       settings: 'key',
     })
+    this.version(2).stores({
+      items: 'id, name, brand, categoryId, purchaseDate, purchaseMethod, isFavorite, createdAt, updatedAt, deletedAt',
+      images: 'id, itemId, [itemId+sortOrder], sortOrder',
+      categories: 'id, sortOrder, isActive',
+      settings: 'key',
+      drafts: 'key, itemId, updatedAt',
+    })
   }
 }
 
@@ -33,9 +43,15 @@ export const db = new FashionArchiveDatabase()
 export async function initializeDatabase() {
   const categoryCount = await db.categories.count()
   if (categoryCount === 0) await db.categories.bulkAdd(DEFAULT_CATEGORIES)
-  if (!(await db.settings.get('schemaVersion'))) {
-    await db.settings.put({ key: 'schemaVersion', value: 1 })
-  }
+  const storedVersion = Number((await db.settings.get('schemaVersion'))?.value ?? 0)
+  if (storedVersion < DATABASE_SCHEMA_VERSION) await db.settings.put({ key: 'schemaVersion', value: DATABASE_SCHEMA_VERSION })
+}
+
+export async function markDataChanged() {
+  await db.transaction('rw', db.settings, async () => {
+    const current = Number((await db.settings.get('changesSinceBackup'))?.value ?? 0)
+    await db.settings.put({ key: 'changesSinceBackup', value: current + 1 })
+  })
 }
 
 export async function saveItem(item: ItemRecord, images: ImageRecord[]) {
@@ -47,14 +63,17 @@ export async function saveItem(item: ItemRecord, images: ImageRecord[]) {
     await db.items.put(item)
     if (images.length) await db.images.bulkPut(images)
   })
+  await markDataChanged()
 }
 
 export async function moveItemToTrash(id: string) {
   await db.items.update(id, { deletedAt: new Date(), updatedAt: new Date() })
+  await markDataChanged()
 }
 
 export async function restoreItem(id: string) {
   await db.items.update(id, { deletedAt: null, updatedAt: new Date() })
+  await markDataChanged()
 }
 
 export async function permanentlyDeleteItem(id: string) {
@@ -62,6 +81,7 @@ export async function permanentlyDeleteItem(id: string) {
     await db.images.where('itemId').equals(id).delete()
     await db.items.delete(id)
   })
+  await markDataChanged()
 }
 
 export async function emptyTrash() {
@@ -72,10 +92,14 @@ export async function emptyTrash() {
       await db.items.delete(item.id)
     }
   })
+  if (deletedItems.length) await markDataChanged()
 }
 
 export async function updateBackupTimestamp() {
-  await db.settings.put({ key: 'lastBackupAt', value: new Date().toISOString() })
+  await db.transaction('rw', db.settings, async () => {
+    await db.settings.put({ key: 'lastBackupAt', value: new Date().toISOString() })
+    await db.settings.put({ key: 'changesSinceBackup', value: 0 })
+  })
 }
 
 export async function getStorageEstimate() {

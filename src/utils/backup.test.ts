@@ -61,18 +61,24 @@ describe('complete backup', () => {
 
     expect(manifest.itemCount).toBe(1)
     expect(manifest.imageCount).toBe(1)
+    expect((await db.settings.get('changesSinceBackup'))?.value).toBe(0)
     await expect(inspectBackup(file)).resolves.toMatchObject({
       manifest: { itemCount: 1, imageCount: 1 },
     })
 
     await db.items.update(itemId, { name: '変更後' })
     await db.images.clear()
+    await db.drafts.put({
+      key: 'new', itemId: 'stale-draft', draft: { name: '古い下書き', brand: '', categoryId: null, size: '', color: '', originalPrice: '', purchasePrice: '', purchaseDate: '', purchaseMethod: '', purchaseSource: '', notes: '', isFavorite: false }, images: [], updatedAt: new Date(),
+    })
     await restoreBackup(file)
 
     expect(await db.items.get(itemId)).toMatchObject({ name: 'バックアップ用コート', coverImageId: imageId })
     const restoredImage = await db.images.get(imageId)
     expect(restoredImage?.imageBlob.size).toBe(new Blob(['full-image']).size)
     expect(restoredImage?.thumbnailBlob.size).toBe(new Blob(['thumbnail']).size)
+    expect(await db.drafts.count()).toBe(0)
+    expect((await db.settings.get('schemaVersion'))?.value).toBe(2)
   })
 
   it('rejects a file that is not a Fashion Archive backup', async () => {
