@@ -8,6 +8,7 @@ import { formatYen } from '../utils/format'
 import { ItemImage } from '../components/ItemImage'
 import { AppHeader } from '../components/AppHeader'
 import { BackupReminder } from '../components/BackupReminder'
+import { EMPTY_COLLECTION_FILTER, filterAndSortItems, hasCollectionConditions, loadCollectionViewState, saveCollectionViewState, type CollectionFilter } from '../utils/collection'
 
 const SORT_LABELS: Record<SortMode, string> = {
   'purchase-newest': '購入日の新しい順',
@@ -19,45 +20,16 @@ const SORT_LABELS: Record<SortMode, string> = {
   'price-low': '価格の安い順',
 }
 
-interface FilterState {
-  categoryId: string
-  brand: string
-  year: string
-  purchaseMethod: string
-  favoriteOnly: boolean
-  minPrice: string
-  maxPrice: string
-}
-
-const emptyFilter: FilterState = { categoryId: '', brand: '', year: '', purchaseMethod: '', favoriteOnly: false, minPrice: '', maxPrice: '' }
-
-function sortItems(items: ItemRecord[], mode: SortMode) {
-  const copy = [...items]
-  const nullableDate = (value: string | null) => value ? new Date(`${value}T00:00:00`).getTime() : null
-  const withNullLast = (a: number | null, b: number | null, direction: 1 | -1) => {
-    if (a === null) return 1
-    if (b === null) return -1
-    return (a - b) * direction
-  }
-  return copy.sort((a, b) => {
-    if (mode === 'purchase-newest') return withNullLast(nullableDate(a.purchaseDate), nullableDate(b.purchaseDate), -1)
-    if (mode === 'purchase-oldest') return withNullLast(nullableDate(a.purchaseDate), nullableDate(b.purchaseDate), 1)
-    if (mode === 'created-newest') return b.createdAt.getTime() - a.createdAt.getTime()
-    if (mode === 'name') return a.name.localeCompare(b.name, 'ja')
-    if (mode === 'brand') return a.brand.localeCompare(b.brand, 'ja')
-    if (mode === 'price-high') return withNullLast(a.purchasePrice, b.purchasePrice, -1)
-    return withNullLast(a.purchasePrice, b.purchasePrice, 1)
-  })
-}
-
 export function CollectionScreen() {
   const items = useLiveQuery(() => db.items.filter((item) => item.deletedAt === null).toArray(), [], [])
   const images = useLiveQuery(() => db.images.toArray(), [], [])
   const categories = useLiveQuery(() => db.categories.orderBy('sortOrder').toArray(), [], [])
-  const [query, setQuery] = useState('')
-  const [sort, setSort] = useState<SortMode>('purchase-newest')
-  const [filter, setFilter] = useState<FilterState>(emptyFilter)
-  const [draftFilter, setDraftFilter] = useState<FilterState>(emptyFilter)
+  const showPricesSetting = useLiveQuery(() => db.settings.get('showPricesInCollection'), [], undefined)
+  const initialView = useMemo(() => loadCollectionViewState(), [])
+  const [query, setQuery] = useState(initialView.query)
+  const [sort, setSort] = useState<SortMode>(initialView.sort)
+  const [filter, setFilter] = useState<CollectionFilter>(initialView.filter)
+  const [draftFilter, setDraftFilter] = useState<CollectionFilter>(initialView.filter)
   const [filterOpen, setFilterOpen] = useState(false)
   const restoredScroll = useRef(false)
 
@@ -70,33 +42,29 @@ export function CollectionScreen() {
     requestAnimationFrame(() => requestAnimationFrame(() => window.scrollTo({ top: Number(stored) || 0 })))
   }, [items.length])
 
+  useEffect(() => {
+    saveCollectionViewState({ query, sort, filter })
+  }, [filter, query, sort])
+
   const imageMap = useMemo(() => new Map(images.map((image) => [image.id, image])), [images])
   const brands = useMemo(() => [...new Set(items.map((item) => item.brand).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'ja')), [items])
-  const years = useMemo(() => [...new Set(items.map((item) => item.purchaseDate?.slice(0, 4)).filter(Boolean) as string[])].sort().reverse(), [items])
+  const colors = useMemo(() => [...new Set(items.map((item) => item.color).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'ja')), [items])
   const activeFilterCount = Object.entries(filter).filter(([key, value]) => key === 'favoriteOnly' ? value === true : value !== '').length
+  const hasConditions = hasCollectionConditions(query, filter)
+  const showPrices = showPricesSetting?.value !== false
 
-  const filtered = useMemo(() => {
-    const normalized = query.trim().toLocaleLowerCase('ja')
-    const min = filter.minPrice ? Number(filter.minPrice) : null
-    const max = filter.maxPrice ? Number(filter.maxPrice) : null
-    const result = items.filter((item) => {
-      const haystack = [item.name, item.brand, item.color, item.purchaseSource, item.notes].join(' ').toLocaleLowerCase('ja')
-      if (normalized && !haystack.includes(normalized)) return false
-      if (filter.categoryId && item.categoryId !== filter.categoryId) return false
-      if (filter.brand && item.brand !== filter.brand) return false
-      if (filter.year && item.purchaseDate?.slice(0, 4) !== filter.year) return false
-      if (filter.purchaseMethod && item.purchaseMethod !== filter.purchaseMethod) return false
-      if (filter.favoriteOnly && !item.isFavorite) return false
-      if (min !== null && (item.purchasePrice === null || item.purchasePrice < min)) return false
-      if (max !== null && (item.purchasePrice === null || item.purchasePrice > max)) return false
-      return true
-    })
-    return sortItems(result, sort)
-  }, [items, query, filter, sort])
+  const filtered = useMemo(() => filterAndSortItems(items, query, filter, sort), [items, query, filter, sort])
+  const navigationIds = useMemo(() => filtered.map((item) => item.id), [filtered])
 
   const openFilters = () => {
     setDraftFilter(filter)
     setFilterOpen(true)
+  }
+
+  const clearConditions = () => {
+    setQuery('')
+    setFilter({ ...EMPTY_COLLECTION_FILTER })
+    setDraftFilter({ ...EMPTY_COLLECTION_FILTER })
   }
 
   return (
@@ -114,9 +82,9 @@ export function CollectionScreen() {
       </label>
 
       <div className="collection-tools">
-        <button className={activeFilterCount ? 'filter-button active' : 'filter-button'} type="button" onClick={openFilters}>
+        <div className="collection-tools__left"><button className={activeFilterCount ? 'filter-button active' : 'filter-button'} type="button" onClick={openFilters}>
           <SlidersHorizontal aria-hidden="true" />絞り込み{activeFilterCount > 0 && <span>{activeFilterCount}</span>}
-        </button>
+        </button>{hasConditions && <button className="clear-conditions" type="button" onClick={clearConditions}><X aria-hidden="true" />条件をクリア</button>}</div>
         <label className="sort-select">
           <span className="sr-only">並べ替え</span>
           <select value={sort} onChange={(event) => setSort(event.target.value as SortMode)}>
@@ -135,7 +103,7 @@ export function CollectionScreen() {
       ) : (
         <section className="item-grid" aria-label="アイテム一覧">
           {filtered.map((item) => (
-            <ItemCard key={item.id} item={item} image={item.coverImageId ? imageMap.get(item.coverImageId) : undefined} />
+            <ItemCard key={item.id} item={item} image={item.coverImageId ? imageMap.get(item.coverImageId) : undefined} showPrice={showPrices} navigationIds={navigationIds} />
           ))}
         </section>
       )}
@@ -150,12 +118,14 @@ export function CollectionScreen() {
             <div className="form-stack compact">
               <label><span>カテゴリー</span><select value={draftFilter.categoryId} onChange={(event) => setDraftFilter({ ...draftFilter, categoryId: event.target.value })}><option value="">すべて</option>{categories.filter((category) => category.isActive).map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label>
               <label><span>ブランド</span><select value={draftFilter.brand} onChange={(event) => setDraftFilter({ ...draftFilter, brand: event.target.value })}><option value="">すべて</option>{brands.map((brand) => <option key={brand}>{brand}</option>)}</select></label>
-              <label><span>購入年</span><select value={draftFilter.year} onChange={(event) => setDraftFilter({ ...draftFilter, year: event.target.value })}><option value="">すべて</option>{years.map((year) => <option key={year}>{year}</option>)}</select></label>
+              <label><span>カラー</span><select value={draftFilter.color} onChange={(event) => setDraftFilter({ ...draftFilter, color: event.target.value })}><option value="">すべて</option>{colors.map((color) => <option key={color}>{color}</option>)}</select></label>
+              <label><span>購入日の開始</span><div className="date-input-shell"><input type="date" max={draftFilter.purchaseDateTo || undefined} value={draftFilter.purchaseDateFrom} onChange={(event) => setDraftFilter({ ...draftFilter, purchaseDateFrom: event.target.value })} /></div></label>
+              <label><span>購入日の終了</span><div className="date-input-shell"><input type="date" min={draftFilter.purchaseDateFrom || undefined} value={draftFilter.purchaseDateTo} onChange={(event) => setDraftFilter({ ...draftFilter, purchaseDateTo: event.target.value })} /></div></label>
               <label><span>購入方法</span><select value={draftFilter.purchaseMethod} onChange={(event) => setDraftFilter({ ...draftFilter, purchaseMethod: event.target.value })}><option value="">すべて</option>{PURCHASE_METHODS.map((method) => <option key={method}>{method}</option>)}</select></label>
               <div className="field-pair"><label><span>最低価格</span><input inputMode="numeric" value={draftFilter.minPrice} onChange={(event) => setDraftFilter({ ...draftFilter, minPrice: event.target.value.replace(/\D/g, '') })} placeholder="¥0" /></label><label><span>最高価格</span><input inputMode="numeric" value={draftFilter.maxPrice} onChange={(event) => setDraftFilter({ ...draftFilter, maxPrice: event.target.value.replace(/\D/g, '') })} placeholder="上限なし" /></label></div>
               <label className="switch-row"><span>お気に入りのみ</span><input type="checkbox" checked={draftFilter.favoriteOnly} onChange={(event) => setDraftFilter({ ...draftFilter, favoriteOnly: event.target.checked })} /></label>
             </div>
-            <div className="sheet-actions"><button className="secondary-button" type="button" onClick={() => setDraftFilter(emptyFilter)}>すべてクリア</button><button className="primary-button" type="button" onClick={() => { setFilter(draftFilter); setFilterOpen(false) }}>絞り込みを適用</button></div>
+            <div className="sheet-actions"><button className="secondary-button" type="button" onClick={() => setDraftFilter({ ...EMPTY_COLLECTION_FILTER })}>すべてクリア</button><button className="primary-button" type="button" onClick={() => { setFilter(draftFilter); setFilterOpen(false) }}>絞り込みを適用</button></div>
           </section>
         </div>
       )}
@@ -163,9 +133,10 @@ export function CollectionScreen() {
   )
 }
 
-function ItemCard({ item, image }: { item: ItemRecord; image?: ImageRecord }) {
+function ItemCard({ item, image, showPrice, navigationIds }: { item: ItemRecord; image?: ImageRecord; showPrice: boolean; navigationIds: string[] }) {
   const openDetail = () => {
     sessionStorage.setItem('collectionScrollY', String(window.scrollY))
+    sessionStorage.setItem('collectionNavigationIds', JSON.stringify(navigationIds))
     navigate(`item/${item.id}`)
   }
   const toggleFavorite = async (event: React.MouseEvent) => {
@@ -182,7 +153,7 @@ function ItemCard({ item, image }: { item: ItemRecord; image?: ImageRecord }) {
         </button>
       </div>
       {item.brand && <span className="item-card__brand">{item.brand}</span>}
-      <div className="item-card__line"><h2>{item.name}</h2>{item.purchasePrice !== null && <strong>{formatYen(item.purchasePrice)}</strong>}</div>
+      <div className="item-card__line"><h2>{item.name}</h2>{showPrice && item.purchasePrice !== null && <strong>{formatYen(item.purchasePrice)}</strong>}</div>
     </article>
   )
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { ChevronRight, Database, FolderCog, Info, RefreshCw, Trash2, Wifi, WifiOff } from 'lucide-react'
+import { ChevronRight, Database, Eye, FolderCog, Info, RefreshCw, Trash2, Wifi, WifiOff } from 'lucide-react'
 import { AppHeader } from '../components/AppHeader'
 import { db, getStorageEstimate } from '../db'
 import { navigate } from '../hooks/useRoute'
@@ -8,6 +8,7 @@ import { fileSize, formatDate } from '../utils/format'
 
 export function SettingsScreen() {
   const lastBackup = useLiveQuery(() => db.settings.get('lastBackupAt'), [], undefined)
+  const showPrices = useLiveQuery(() => db.settings.get('showPricesInCollection'), [], undefined)
   const trashCount = useLiveQuery(() => db.items.filter((item) => item.deletedAt !== null).count(), [], 0)
   const [storage, setStorage] = useState<{ usage?: number; quota?: number } | null>(null)
   const [online, setOnline] = useState(() => navigator.onLine)
@@ -24,6 +25,7 @@ export function SettingsScreen() {
       <section className="settings-heading"><span>SETTINGS</span><h1>設定</h1><p>コレクションとデータを整えます。</p></section>
       <SettingsGroup title="コレクション設定">
         <SettingLink icon={<FolderCog />} label="カテゴリー管理" detail="追加・名称変更・並べ替え" onClick={() => navigate('categories')} />
+        <label className="setting-toggle"><Eye aria-hidden="true" /><div><strong>一覧に購入価格を表示</strong><span>オフにしても詳細画面と統計には表示されます</span></div><input type="checkbox" checked={showPrices?.value !== false} onChange={(event) => db.settings.put({ key: 'showPricesInCollection', value: event.target.checked })} /></label>
       </SettingsGroup>
       <SettingsGroup title="データ管理">
         <SettingLink icon={<Database />} label="バックアップと復元" detail={lastBackup?.value ? `最終バックアップ ${formatDate(String(lastBackup.value).slice(0, 10))}` : 'バックアップはまだありません'} onClick={() => navigate('backup')} />

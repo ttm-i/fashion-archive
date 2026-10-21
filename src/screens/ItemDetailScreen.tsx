@@ -15,12 +15,28 @@ export function ItemDetailScreen({ id }: { id: string }) {
   const [fullScreen, setFullScreen] = useState(false)
   const [deleted, setDeleted] = useState(false)
   const touchStart = useRef<{ x: number; y: number } | null>(null)
+  const itemTouchStart = useRef<{ x: number; y: number } | null>(null)
+  const navigationIds = (() => {
+    try {
+      const parsed = JSON.parse(sessionStorage.getItem('collectionNavigationIds') ?? '[]')
+      return Array.isArray(parsed) && parsed.every((value) => typeof value === 'string') ? parsed as string[] : []
+    } catch { return [] }
+  })()
+  const navigationIndex = navigationIds.indexOf(id)
+  const previousId = navigationIndex > 0 ? navigationIds[navigationIndex - 1] : undefined
+  const nextId = navigationIndex >= 0 && navigationIndex < navigationIds.length - 1 ? navigationIds[navigationIndex + 1] : undefined
 
   useEffect(() => {
     if (!deleted) return
     const timer = window.setTimeout(() => navigate('collection'), 4500)
     return () => window.clearTimeout(timer)
   }, [deleted])
+
+  useEffect(() => {
+    setImageIndex(0)
+    setFullScreen(false)
+    setDeleted(false)
+  }, [id])
 
   if (item === undefined) return <main className="screen loading-screen"><p>読み込んでいます…</p></main>
   if (!item) return <main className="screen empty-state"><h1>アイテムが見つかりません</h1><button className="primary-button" type="button" onClick={() => navigate('collection')}>コレクションへ戻る</button></main>
@@ -53,6 +69,27 @@ export function ItemDetailScreen({ id }: { id: string }) {
     if (Math.abs(dx) < 40 || Math.abs(dx) <= Math.abs(dy)) return
     setImageIndex((current) => dx < 0 ? (current + 1) % images.length : (current - 1 + images.length) % images.length)
   }
+  const openAdjacent = (targetId: string | undefined) => {
+    if (targetId) navigate(`item/${targetId}`, true)
+  }
+  const beginItemSwipe = (event: React.TouchEvent) => {
+    if (event.target instanceof Element && event.target.closest('button, input, select, textarea, a')) {
+      itemTouchStart.current = null
+      return
+    }
+    const touch = event.touches[0]
+    itemTouchStart.current = touch ? { x: touch.clientX, y: touch.clientY } : null
+  }
+  const finishItemSwipe = (event: React.TouchEvent) => {
+    const start = itemTouchStart.current
+    const touch = event.changedTouches[0]
+    itemTouchStart.current = null
+    if (!start || !touch) return
+    const dx = touch.clientX - start.x
+    const dy = touch.clientY - start.y
+    if (Math.abs(dx) < 60 || Math.abs(dx) <= Math.abs(dy)) return
+    openAdjacent(dx > 0 ? previousId : nextId)
+  }
 
   return (
     <main className="screen detail-screen">
@@ -64,7 +101,7 @@ export function ItemDetailScreen({ id }: { id: string }) {
         {images.length > 1 && <div className="gallery-dots" aria-label={`${imageIndex + 1} / ${images.length}`}>{images.map((image, index) => <button key={image.id} className={index === imageIndex ? 'active' : ''} onClick={() => setImageIndex(index)} type="button" aria-label={`写真${index + 1}`} />)}</div>}
       </section>
 
-      <section className="detail-content">
+      <section className="detail-content" onTouchStart={beginItemSwipe} onTouchEnd={finishItemSwipe}>
         {item.brand && <span className="detail-brand">{item.brand}</span>}
         <h1>{item.name}</h1>
         <div className="detail-price"><strong>{item.purchasePrice !== null ? formatYen(item.purchasePrice) : '価格未登録'}</strong>{item.originalPrice !== null && <span>定価 {formatYen(item.originalPrice)}</span>}{savings !== null && <em>{formatYen(savings)} OFF</em>}</div>
@@ -79,6 +116,7 @@ export function ItemDetailScreen({ id }: { id: string }) {
         </div>
 
         {item.notes && <div className="detail-notes"><span>NOTES</span><p>{item.notes}</p></div>}
+        {(previousId || nextId) && <nav className="detail-item-nav" aria-label="前後のアイテム"><button type="button" disabled={!previousId} onClick={() => openAdjacent(previousId)}><ChevronLeft aria-hidden="true" />前のアイテム</button><span>{navigationIndex + 1} / {navigationIds.length}</span><button type="button" disabled={!nextId} onClick={() => openAdjacent(nextId)}>次のアイテム<ChevronRight aria-hidden="true" /></button></nav>}
         <button className="primary-button block" type="button" onClick={() => navigate(`edit/${id}`)}><Pencil aria-hidden="true" />編集する</button>
         <button className="danger-link" type="button" onClick={remove}><Trash2 aria-hidden="true" />ゴミ箱へ移動</button>
       </section>
