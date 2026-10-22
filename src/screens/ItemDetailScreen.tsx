@@ -6,7 +6,7 @@ import { ItemImage } from '../components/ItemImage'
 import { db, markDataChanged, moveItemToTrash, restoreItem } from '../db'
 import { navigate } from '../hooks/useRoute'
 import { formatDate, formatYen } from '../utils/format'
-import { measurementEntries } from '../utils/measurements'
+import { measurementEntries, measurementKeysForCategory } from '../utils/measurements'
 
 export function ItemDetailScreen({ id }: { id: string }) {
   const item = useLiveQuery(() => db.items.get(id), [id])
@@ -57,7 +57,7 @@ export function ItemDetailScreen({ id }: { id: string }) {
     setDeleted(false)
   }
   const savings = item.originalPrice !== null && item.purchasePrice !== null && item.originalPrice > item.purchasePrice ? item.originalPrice - item.purchasePrice : null
-  const measurements = measurementEntries(item.measurements)
+  const measurements = measurementEntries(item.measurements, measurementKeysForCategory(item.categoryId))
   const beginSwipe = (event: React.TouchEvent) => {
     const touch = event.touches[0]
     touchStart.current = touch ? { x: touch.clientX, y: touch.clientY } : null

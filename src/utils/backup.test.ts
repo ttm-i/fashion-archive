@@ -81,7 +81,7 @@ describe('complete backup', () => {
     expect(restoredImage?.imageBlob.size).toBe(new Blob(['full-image']).size)
     expect(restoredImage?.thumbnailBlob.size).toBe(new Blob(['thumbnail']).size)
     expect(await db.drafts.count()).toBe(0)
-    expect((await db.settings.get('schemaVersion'))?.value).toBe(5)
+    expect((await db.settings.get('schemaVersion'))?.value).toBe(6)
   })
 
   it('rejects a file that is not a Fashion Archive backup', async () => {

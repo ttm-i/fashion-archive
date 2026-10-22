@@ -2,7 +2,7 @@ import { BlobReader, BlobWriter, TextReader, TextWriter, ZipReader, ZipWriter } 
 import { DATABASE_SCHEMA_VERSION, db, updateBackupTimestamp } from '../db'
 import type { BackupManifest, CategoryRecord, ImageRecord, ItemMeasurements, ItemRecord, MaterialEntry, OwnershipStatus, SettingRecord } from '../types'
 import { formatMaterials } from './materials'
-import { formatMeasurements } from './measurements'
+import { formatMeasurements, sanitizeMeasurementsForCategory } from './measurements'
 
 interface SerializedImage {
   id: string
@@ -169,8 +169,8 @@ export async function restoreBackup(file: File) {
       ...item,
       ownershipStatus: item.ownershipStatus ?? 'owned',
       materials: item.materials ?? [],
-      measurements: item.measurements ?? {},
-      schemaVersion: 4,
+      measurements: sanitizeMeasurementsForCategory(item.measurements, item.categoryId),
+      schemaVersion: 5,
       createdAt: new Date(item.createdAt),
       updatedAt: new Date(item.updatedAt),
       deletedAt: item.deletedAt ? new Date(item.deletedAt) : null,
@@ -205,7 +205,7 @@ export async function exportCsv() {
     item.size,
     item.color,
     formatMaterials(item.materials),
-    formatMeasurements(item.measurements),
+    formatMeasurements(item.measurements, item.categoryId),
     item.originalPrice ?? '',
     item.purchasePrice ?? '',
     item.purchaseDate ?? '',

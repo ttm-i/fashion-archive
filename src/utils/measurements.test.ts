@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { emptyMeasurementDraft, formatMeasurements, measurementKeysForCategory, parseMeasurements, toMeasurementDraft } from './measurements'
+import { emptyMeasurementDraft, formatMeasurements, measurementKeysForCategory, parseMeasurements, sanitizeMeasurementsForCategory, toMeasurementDraft } from './measurements'
 
 describe('measurements', () => {
   it('provides the appropriate fields for supported categories', () => {
@@ -19,6 +19,11 @@ describe('measurements', () => {
     const draft = emptyMeasurementDraft()
     draft.waist = '0'
     expect(() => parseMeasurements(draft)).toThrow('ウエスト')
+  })
+
+  it('keeps only measurements that belong to the selected category', () => {
+    expect(sanitizeMeasurementsForCategory({ shoulderWidth: 48, waist: 82 }, 'bottoms')).toEqual({ waist: 82 })
+    expect(sanitizeMeasurementsForCategory({ shoulderWidth: 48 }, 'bags')).toEqual({})
   })
 
   it('converts saved values for editing and CSV display', () => {

@@ -36,7 +36,7 @@ describe('database operations', () => {
 
   it('seeds default categories', async () => {
     expect(await db.categories.count()).toBe(7)
-    expect((await db.settings.get('schemaVersion'))?.value).toBe(5)
+    expect((await db.settings.get('schemaVersion'))?.value).toBe(6)
   })
 
   it('saves, trashes, restores and permanently empties items', async () => {
@@ -125,10 +125,30 @@ describe('database operations', () => {
     await initializeDatabase()
 
     expect(await db.items.count()).toBe(1)
-    expect((await db.settings.get('schemaVersion'))?.value).toBe(5)
+    expect((await db.settings.get('schemaVersion'))?.value).toBe(6)
     expect((await db.items.toArray())[0]?.ownershipStatus).toBe('owned')
     expect((await db.items.toArray())[0]?.materials).toEqual([])
     expect((await db.items.toArray())[0]?.measurements).toEqual({})
     await expect(db.drafts.count()).resolves.toBe(0)
+  })
+
+  it('removes measurements that do not belong to the saved category during upgrade', async () => {
+    await db.delete()
+    const legacy = new Dexie('fashion-archive')
+    legacy.version(5).stores({
+      items: 'id, name, brand, categoryId, purchaseDate, purchaseMethod, ownershipStatus, isFavorite, createdAt, updatedAt, deletedAt',
+      images: 'id, itemId, [itemId+sortOrder], sortOrder',
+      categories: 'id, sortOrder, isActive',
+      settings: 'key',
+      drafts: 'key, itemId, updatedAt',
+    })
+    await legacy.open()
+    await legacy.table('items').put({ ...makeItem(), categoryId: 'bottoms', measurements: { shoulderWidth: 48, waist: 82 } })
+    legacy.close()
+
+    await db.open()
+    await initializeDatabase()
+
+    expect((await db.items.toArray())[0]?.measurements).toEqual({ waist: 82 })
   })
 })

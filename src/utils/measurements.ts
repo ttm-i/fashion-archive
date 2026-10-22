@@ -28,9 +28,9 @@ export function toMeasurementDraft(measurements: ItemMeasurements | undefined): 
   return Object.fromEntries(MEASUREMENT_KEYS.map((key) => [key, measurements?.[key]?.toString() ?? ''])) as unknown as MeasurementDraft
 }
 
-export function parseMeasurements(draft: MeasurementDraft): ItemMeasurements {
+export function parseMeasurements(draft: MeasurementDraft, allowedKeys: MeasurementKey[] = MEASUREMENT_KEYS): ItemMeasurements {
   const result: ItemMeasurements = {}
-  for (const key of MEASUREMENT_KEYS) {
+  for (const key of allowedKeys) {
     const raw = draft[key].trim()
     if (!raw) continue
     const value = Number(raw.replace(',', '.'))
@@ -40,10 +40,16 @@ export function parseMeasurements(draft: MeasurementDraft): ItemMeasurements {
   return result
 }
 
-export function measurementEntries(measurements: ItemMeasurements | undefined) {
-  return MEASUREMENT_KEYS.flatMap((key) => measurements?.[key] === undefined ? [] : [{ key, label: MEASUREMENT_LABELS[key], value: measurements[key] }])
+export function sanitizeMeasurementsForCategory(measurements: ItemMeasurements | undefined, categoryId: string | null): ItemMeasurements {
+  const allowedKeys = measurementKeysForCategory(categoryId)
+  return Object.fromEntries(allowedKeys.flatMap((key) => measurements?.[key] === undefined ? [] : [[key, measurements[key]]])) as ItemMeasurements
 }
 
-export function formatMeasurements(measurements: ItemMeasurements | undefined) {
-  return measurementEntries(measurements).map((entry) => `${entry.label} ${entry.value}cm`).join(' / ')
+export function measurementEntries(measurements: ItemMeasurements | undefined, keys: MeasurementKey[] = MEASUREMENT_KEYS) {
+  return keys.flatMap((key) => measurements?.[key] === undefined ? [] : [{ key, label: MEASUREMENT_LABELS[key], value: measurements[key] }])
+}
+
+export function formatMeasurements(measurements: ItemMeasurements | undefined, categoryId?: string | null) {
+  const keys = categoryId === undefined ? MEASUREMENT_KEYS : measurementKeysForCategory(categoryId)
+  return measurementEntries(measurements, keys).map((entry) => `${entry.label} ${entry.value}cm`).join(' / ')
 }

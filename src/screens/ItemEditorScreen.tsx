@@ -189,7 +189,7 @@ export function ItemEditorScreen({ id, mode = 'owned' }: { id?: string; mode?: '
     setError('')
     try {
       const materials = parseMaterials(draft.materials)
-      const measurements = parseMeasurements(draft.measurements)
+      const measurements = parseMeasurements(draft.measurements, measurementKeys)
       const now = new Date()
       const item: ItemRecord = {
         id: itemId,
@@ -212,7 +212,7 @@ export function ItemEditorScreen({ id, mode = 'owned' }: { id?: string; mode?: '
         createdAt: existing?.createdAt ?? now,
         updatedAt: now,
         deletedAt: existing?.deletedAt ?? null,
-        schemaVersion: 4,
+        schemaVersion: 5,
       }
       await saveItem(item, images.map((image, sortOrder) => ({ ...image, itemId, sortOrder })))
       await db.drafts.delete(draftKey)

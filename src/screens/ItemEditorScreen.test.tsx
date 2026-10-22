@@ -88,4 +88,19 @@ describe('item editor draft recovery', () => {
       expect(saved?.measurements).toEqual({ shoulderWidth: 47.5, bodyLength: 72 })
     })
   })
+
+  it('discards measurements that do not belong to the final category', async () => {
+    render(<ItemEditorScreen />)
+    fireEvent.change(await screen.findByLabelText(/アイテム名/), { target: { value: 'カテゴリー変更テスト' } })
+    fireEvent.change(screen.getByLabelText('カテゴリー'), { target: { value: 'tops' } })
+    fireEvent.change(await screen.findByLabelText('肩幅（cm）'), { target: { value: '48' } })
+    fireEvent.change(screen.getByLabelText('カテゴリー'), { target: { value: 'bottoms' } })
+    fireEvent.change(await screen.findByLabelText('ウエスト（cm）'), { target: { value: '82' } })
+    fireEvent.click(screen.getByRole('button', { name: '保存する' }))
+
+    await waitFor(async () => {
+      const saved = await db.items.where('name').equals('カテゴリー変更テスト').first()
+      expect(saved?.measurements).toEqual({ waist: 82 })
+    })
+  })
 })
