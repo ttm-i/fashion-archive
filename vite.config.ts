@@ -11,7 +11,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'prompt',
-      includeAssets: ['icon.svg', 'apple-touch-icon.png'],
+      includeAssets: ['my-archive-icon-180.png'],
       manifest: {
         id: './',
         name: 'Fashion Archive',
@@ -24,9 +24,8 @@ export default defineConfig({
         orientation: 'portrait-primary',
         start_url: './',
         icons: [
-          { src: 'icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
-          { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
-          { src: 'icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any maskable' }
+          { src: 'my-archive-icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: 'my-archive-icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
         ]
       },
       workbox: {
