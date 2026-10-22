@@ -37,8 +37,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .page-header__title { text-align: center; }
 .page-header__title > span { display: block; color: var(--muted); font-size: 9px; letter-spacing: .16em; }
 .page-header__title > strong { display: block; max-width: 190px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; font-weight: 650; }
-.brand-lockup span { display: block; font: 700 8px/1.1 Georgia, serif; letter-spacing: .28em; }
-.brand-lockup b { display: block; margin-top: 3px; color: var(--accent); font: italic 24px/1 Georgia, serif; }
+.brand-lockup { color: #20283a; white-space: nowrap; }
+.brand-lockup span { display: block; font: 400 12px/1 -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif; letter-spacing: .24em; }
 .icon-button { width: 44px; height: 44px; padding: 0; display: grid; place-items: center; border: 0; border-radius: 50%; background: transparent; }
 .icon-button svg { width: 22px; height: 22px; }
 .icon-button.active { color: var(--accent); background: var(--accent-soft); }

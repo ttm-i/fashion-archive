@@ -15,7 +15,7 @@ export default defineConfig({
       manifest: {
         id: './',
         name: 'Fashion Archive',
-        short_name: 'Archive',
+        short_name: 'My Archive',
         lang: 'ja',
         description: '写真でつくる、私だけのファッションアーカイブ。',
         theme_color: '#f7f3ed',

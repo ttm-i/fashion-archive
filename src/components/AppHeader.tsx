@@ -17,8 +17,7 @@ export function AppHeader({ title, eyebrow, back, action }: Props) {
           </button>
         ) : (
           <div className="brand-lockup" aria-label="My Archive">
-            <span>MY</span>
-            <b>Archive</b>
+            <span>MY ARCHIVE</span>
           </div>
         )}
       </div>
