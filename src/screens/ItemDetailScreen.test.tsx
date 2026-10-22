@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { db, initializeDatabase, saveItem } from '../db'
-import type { ItemRecord } from '../types'
+import type { ImageRecord, ItemRecord } from '../types'
 import { ItemDetailScreen } from './ItemDetailScreen'
 
 function item(id: string, name: string): ItemRecord {
@@ -41,5 +41,24 @@ describe('item detail navigation', () => {
     fireEvent.click(screen.getByRole('button', { name: '購入済みにする' }))
     expect(window.location.hash).toBe('#/acquire/wanted')
     expect(replaceState).toHaveBeenCalledWith(null, '', '#/acquire/wanted')
+  })
+
+  it('uses each photo order and framing in the square detail gallery', async () => {
+    const now = new Date('2026-10-22T00:00:00.000Z')
+    const makeImage = (id: string, focusX: number, focusY: number): ImageRecord => ({
+      id, itemId: 'photos', sortOrder: 0, imageBlob: new Blob([id]), thumbnailBlob: new Blob([`${id}-thumb`]),
+      mimeType: 'image/webp', width: 1200, height: 700, byteSize: id.length, focusX, focusY, createdAt: now,
+    })
+    await saveItem(item('photos', '写真付きアイテム'), [
+      makeImage('photo-first', 75, 20),
+      { ...makeImage('photo-second', 30, 80), sortOrder: 1 },
+    ])
+
+    render(<ItemDetailScreen id="photos" />)
+    const first = await screen.findByAltText('写真付きアイテムの写真1') as HTMLImageElement
+    expect(first.style.objectFit).toBe('cover')
+    expect(first.style.objectPosition).toBe('75% 20%')
+    fireEvent.click(screen.getByRole('button', { name: '次の写真' }))
+    expect((await screen.findByAltText('写真付きアイテムの写真2') as HTMLImageElement).style.objectPosition).toBe('30% 80%')
   })
 })

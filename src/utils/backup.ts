@@ -4,6 +4,7 @@ import type { BackupManifest, CategoryRecord, ImageRecord, ItemMeasurements, Ite
 import { formatMaterials } from './materials'
 import { formatMeasurements, sanitizeMeasurementsForCategory } from './measurements'
 import { normalizeFocus } from './imageFocus'
+import { arrangeImages, createImageLayout } from './imageLayout'
 
 interface SerializedImage {
   id: string
@@ -49,7 +50,7 @@ export async function createBackup() {
   const manifest: BackupManifest = {
     app: 'Fashion Archive',
     backupVersion: 1,
-    schemaVersion: 5,
+    schemaVersion: 6,
     createdAt: new Date().toISOString(),
     appVersion: __APP_VERSION__,
     itemCount: items.length,
@@ -127,7 +128,7 @@ export async function inspectBackup(file: File): Promise<BackupContents> {
     if (manifest.app !== 'Fashion Archive' || manifest.backupVersion !== 1) {
       throw new Error('Fashion Archiveの対応バックアップではありません。')
     }
-    if (manifest.schemaVersion > 5) throw new Error('このバックアップには、より新しいアプリが必要です。')
+    if (manifest.schemaVersion > 6) throw new Error('このバックアップには、より新しいアプリが必要です。')
     const [items, images, categories, settings] = await Promise.all([
       parseJsonEntry<SerializedItem[]>(entries, 'items.json'),
       parseJsonEntry<SerializedImage[]>(entries, 'images.json'),
@@ -172,16 +173,22 @@ export async function restoreBackup(file: File) {
         thumbnailBlob,
       })
     }
-    const items: ItemRecord[] = metadata.items.map((item) => ({
-      ...item,
-      ownershipStatus: item.ownershipStatus ?? 'owned',
-      materials: item.materials ?? [],
-      measurements: sanitizeMeasurementsForCategory(item.measurements, item.categoryId),
-      schemaVersion: 5,
-      createdAt: new Date(item.createdAt),
-      updatedAt: new Date(item.updatedAt),
-      deletedAt: item.deletedAt ? new Date(item.deletedAt) : null,
-    }))
+    const items: ItemRecord[] = metadata.items.map((item) => {
+      const itemImages = images.filter((image) => image.itemId === item.id)
+      const arrangedImages = arrangeImages(itemImages, item.imageLayout)
+      return {
+        ...item,
+        ownershipStatus: item.ownershipStatus ?? 'owned',
+        materials: item.materials ?? [],
+        measurements: sanitizeMeasurementsForCategory(item.measurements, item.categoryId),
+        coverImageId: arrangedImages[0]?.id ?? null,
+        imageLayout: createImageLayout(arrangedImages),
+        schemaVersion: 6,
+        createdAt: new Date(item.createdAt),
+        updatedAt: new Date(item.updatedAt),
+        deletedAt: item.deletedAt ? new Date(item.deletedAt) : null,
+      }
+    })
     await db.transaction('rw', db.items, db.images, db.categories, db.settings, db.drafts, async () => {
       await Promise.all([db.items.clear(), db.images.clear(), db.categories.clear(), db.settings.clear(), db.drafts.clear()])
       if (items.length) await db.items.bulkAdd(items)

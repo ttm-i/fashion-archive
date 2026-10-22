@@ -9,6 +9,7 @@ import { ItemImage } from '../components/ItemImage'
 import { AppHeader } from '../components/AppHeader'
 import { BackupReminder } from '../components/BackupReminder'
 import { EMPTY_COLLECTION_FILTER, filterAndSortItems, hasCollectionConditions, loadCollectionViewState, saveCollectionViewState, type CollectionFilter } from '../utils/collection'
+import { imageFocus } from '../utils/imageLayout'
 
 const SORT_LABELS: Record<SortMode, string> = {
   'purchase-newest': '購入日の新しい順',
@@ -136,6 +137,7 @@ export function CollectionScreen() {
 }
 
 function ItemCard({ item, image, showPrice, navigationIds }: { item: ItemRecord; image?: ImageRecord; showPrice: boolean; navigationIds: string[] }) {
+  const position = image ? imageFocus(item, image.id) : undefined
   const openDetail = () => {
     sessionStorage.setItem('collectionScrollY', String(window.scrollY))
     sessionStorage.setItem('collectionNavigationIds', JSON.stringify(navigationIds))
@@ -149,7 +151,7 @@ function ItemCard({ item, image, showPrice, navigationIds }: { item: ItemRecord;
   return (
     <article className="item-card" role="button" tabIndex={0} onClick={openDetail} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openDetail() } }}>
       <div className="item-card__photo">
-        <ItemImage blob={image?.thumbnailBlob} alt={item.name} fit="cover" position={image ? { x: image.focusX, y: image.focusY } : undefined} />
+        <ItemImage blob={image?.thumbnailBlob} imageKey={image ? `${image.id}:thumbnail` : undefined} alt={item.name} fit="cover" position={position} />
         <button className={item.isFavorite ? 'favorite-button active' : 'favorite-button'} type="button" onClick={toggleFavorite} aria-label={item.isFavorite ? 'お気に入りから外す' : 'お気に入りに追加'}>
           <Heart aria-hidden="true" fill={item.isFavorite ? 'currentColor' : 'none'} />
         </button>

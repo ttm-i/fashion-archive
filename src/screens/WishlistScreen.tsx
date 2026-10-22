@@ -8,6 +8,7 @@ import { db } from '../db'
 import { navigate } from '../hooks/useRoute'
 import type { ImageRecord, ItemRecord } from '../types'
 import { formatYen } from '../utils/format'
+import { imageFocus } from '../utils/imageLayout'
 
 export function WishlistScreen() {
   const items = useLiveQuery(() => db.items.filter((item) => item.deletedAt === null && item.ownershipStatus === 'wanted').toArray(), [], [])
@@ -51,13 +52,14 @@ export function WishlistScreen() {
 }
 
 function WishlistCard({ item, image, navigationIds }: { item: ItemRecord; image?: ImageRecord; navigationIds: string[] }) {
+  const position = image ? imageFocus(item, image.id) : undefined
   const openDetail = () => {
     sessionStorage.setItem('wishlistNavigationIds', JSON.stringify(navigationIds))
     navigate(`item/${item.id}`)
   }
   return (
     <article className="item-card wishlist-card" role="button" tabIndex={0} onClick={openDetail} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openDetail() } }}>
-      <div className="item-card__photo"><ItemImage blob={image?.thumbnailBlob} alt={item.name} fit="cover" position={image ? { x: image.focusX, y: image.focusY } : undefined} /><span className="wishlist-badge">WANTED</span></div>
+      <div className="item-card__photo"><ItemImage blob={image?.thumbnailBlob} imageKey={image ? `${image.id}:thumbnail` : undefined} alt={item.name} fit="cover" position={position} /><span className="wishlist-badge">WANTED</span></div>
       {item.brand && <span className="item-card__brand">{item.brand}</span>}
       <div className="item-card__line"><h2>{item.name}</h2>{item.originalPrice !== null && <strong>{formatYen(item.originalPrice)}</strong>}</div>
     </article>

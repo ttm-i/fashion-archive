@@ -11,6 +11,7 @@ import { PURCHASE_METHODS } from '../types'
 import { parseOptionalPrice, uniqueSuggestions } from '../utils/format'
 import { prepareImage } from '../utils/images'
 import { normalizeFocus, normalizeImageFocus } from '../utils/imageFocus'
+import { arrangeImages } from '../utils/imageLayout'
 import { parseMaterials } from '../utils/materials'
 import { emptyMeasurementDraft, MEASUREMENT_LABELS, measurementKeysForCategory, parseMeasurements, toMeasurementDraft } from '../utils/measurements'
 
@@ -24,7 +25,7 @@ export function ItemEditorScreen({ id, mode = 'owned' }: { id?: string; mode?: '
   const draftKey = id ? `${mode}:${id}` : isWanted ? 'new-wanted' : 'new'
   const editorData = useLiveQuery(async () => id ? {
     item: await db.items.get(id),
-    images: await db.images.where('itemId').equals(id).sortBy('sortOrder'),
+    images: await db.images.where('itemId').equals(id).toArray(),
   } : null, [id])
   const existing = editorData?.item
   const categories = useLiveQuery(() => db.categories.orderBy('sortOrder').toArray(), [], [])
@@ -61,7 +62,7 @@ export function ItemEditorScreen({ id, mode = 'owned' }: { id?: string; mode?: '
       notes: existing.notes,
       isFavorite: existing.isFavorite,
     })
-    setImages(editorData.images.map(normalizeImageFocus))
+    setImages(arrangeImages(editorData.images, existing.imageLayout))
     setLoaded(true)
   }, [id, existing, editorData, loaded])
 
@@ -166,8 +167,8 @@ export function ItemEditorScreen({ id, mode = 'owned' }: { id?: string; mode?: '
   }
 
   const focusImage = images.find((image) => image.id === focusImageId)
-  const openFocusEditor = () => {
-    const image = images[0]
+  const openFocusEditor = (imageId: string) => {
+    const image = images.find((candidate) => candidate.id === imageId)
     if (!image) return
     setFocusDraft({ x: normalizeFocus(image.focusX), y: normalizeFocus(image.focusY) })
     setFocusImageId(image.id)
@@ -239,7 +240,7 @@ export function ItemEditorScreen({ id, mode = 'owned' }: { id?: string; mode?: '
         createdAt: existing?.createdAt ?? now,
         updatedAt: now,
         deletedAt: existing?.deletedAt ?? null,
-        schemaVersion: 5,
+        schemaVersion: 6,
       }
       await saveItem(item, images.map((image, sortOrder) => ({ ...image, itemId, sortOrder })))
       await db.drafts.delete(draftKey)
@@ -271,9 +272,10 @@ export function ItemEditorScreen({ id, mode = 'owned' }: { id?: string; mode?: '
           <div className="photo-slots">
             {images.map((image, index) => (
               <div className="photo-slot filled" key={image.id}>
-                <ItemImage blob={image.thumbnailBlob} alt={`写真${index + 1}`} />
+                <ItemImage blob={image.thumbnailBlob} imageKey={`${image.id}:thumbnail`} alt={`写真${index + 1}`} fit="cover" position={{ x: image.focusX, y: image.focusY }} />
                 {index === 0 && <span className="cover-label"><Star aria-hidden="true" />表紙</span>}
                 <button className="photo-remove" type="button" onClick={() => removeImage(index)} aria-label={`写真${index + 1}を削除`}><Trash2 aria-hidden="true" /></button>
+                <button className="photo-focus" type="button" onClick={() => openFocusEditor(image.id)} aria-label={`写真${index + 1}の表示位置を調整`}><Move aria-hidden="true" /></button>
                 <div className="photo-order">
                   <button type="button" onClick={() => moveImage(index, -1)} disabled={index === 0} aria-label="左へ移動"><ChevronLeft aria-hidden="true" /></button>
                   <button type="button" onClick={() => moveImage(index, 1)} disabled={index === images.length - 1} aria-label="右へ移動"><ChevronRight aria-hidden="true" /></button>
@@ -287,7 +289,6 @@ export function ItemEditorScreen({ id, mode = 'owned' }: { id?: string; mode?: '
               </label>
             ))}
           </div>
-          {images.length > 0 && <button className="focus-adjust-button" type="button" onClick={openFocusEditor}><Move aria-hidden="true" />一覧写真の表示位置を調整</button>}
           <label className="camera-button"><Camera aria-hidden="true" />{processing ? '写真を処理しています…' : `写真を追加（あと${3 - images.length}枚・複数選択可）`}<input type="file" accept="image/*" multiple onChange={(event) => { addImages(event.target.files); event.target.value = '' }} disabled={processing || images.length >= 3} /></label>
         </section>
 
@@ -353,13 +354,13 @@ export function ItemEditorScreen({ id, mode = 'owned' }: { id?: string; mode?: '
       {focusImage && <div className="sheet-backdrop focus-editor-backdrop" role="presentation" onPointerDown={(event) => event.target === event.currentTarget && setFocusImageId(null)}>
         <section className="bottom-sheet focus-editor-sheet" role="dialog" aria-modal="true" aria-labelledby="focus-editor-title">
           <div className="sheet-handle" />
-          <header><div><span>THUMBNAIL</span><h2 id="focus-editor-title">一覧写真の表示位置</h2></div><button className="icon-button" type="button" onClick={() => setFocusImageId(null)} aria-label="閉じる"><X aria-hidden="true" /></button></header>
-          <p>写真を指で動かし、一覧に見せたい範囲を正方形の中に合わせてください。元の写真は変更されません。</p>
+          <header><div><span>PHOTO {images.findIndex((image) => image.id === focusImage.id) + 1}</span><h2 id="focus-editor-title">写真の表示位置</h2></div><button className="icon-button" type="button" onClick={() => setFocusImageId(null)} aria-label="閉じる"><X aria-hidden="true" /></button></header>
+          <p>写真を指で動かし、一覧・詳細画面に見せたい範囲を正方形の中に合わせてください。元の写真は変更されません。</p>
           <div className="focus-preview" onPointerDown={(event) => {
             focusDrag.current = { pointerX: event.clientX, pointerY: event.clientY, focusX: focusDraft.x, focusY: focusDraft.y }
             event.currentTarget.setPointerCapture(event.pointerId)
           }} onPointerMove={moveFocus} onPointerUp={() => { focusDrag.current = null }} onPointerCancel={() => { focusDrag.current = null }}>
-            <ItemImage blob={focusImage.thumbnailBlob} alt="一覧写真の表示位置プレビュー" fit="cover" position={focusDraft} />
+            <ItemImage blob={focusImage.thumbnailBlob} imageKey={`${focusImage.id}:thumbnail`} alt="写真の表示位置プレビュー" fit="cover" position={focusDraft} />
             <span><Move aria-hidden="true" />指で動かして調整</span>
           </div>
           <div className="focus-controls">

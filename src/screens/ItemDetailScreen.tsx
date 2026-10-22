@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { ChevronLeft, ChevronRight, Heart, Maximize2, Pencil, Trash2, X } from 'lucide-react'
 import { AppHeader } from '../components/AppHeader'
@@ -7,10 +7,11 @@ import { db, markDataChanged, moveItemToTrash, restoreItem } from '../db'
 import { navigate } from '../hooks/useRoute'
 import { formatDate, formatYen } from '../utils/format'
 import { measurementEntries, measurementKeysForCategory } from '../utils/measurements'
+import { arrangeImages } from '../utils/imageLayout'
 
 export function ItemDetailScreen({ id }: { id: string }) {
   const item = useLiveQuery(() => db.items.get(id), [id])
-  const images = useLiveQuery(() => db.images.where('itemId').equals(id).sortBy('sortOrder'), [id], [])
+  const storedImages = useLiveQuery(() => db.images.where('itemId').equals(id).toArray(), [id], [])
   const category = useLiveQuery(async () => item?.categoryId ? db.categories.get(item.categoryId) : undefined, [item?.categoryId])
   const [imageIndex, setImageIndex] = useState(0)
   const [fullScreen, setFullScreen] = useState(false)
@@ -18,6 +19,7 @@ export function ItemDetailScreen({ id }: { id: string }) {
   const touchStart = useRef<{ x: number; y: number } | null>(null)
   const itemTouchStart = useRef<{ x: number; y: number } | null>(null)
   const isWanted = item?.ownershipStatus === 'wanted'
+  const images = useMemo(() => arrangeImages(storedImages, item?.imageLayout), [storedImages, item?.imageLayout])
   const navigationIds = (() => {
     try {
       const parsed = JSON.parse(sessionStorage.getItem(isWanted ? 'wishlistNavigationIds' : 'collectionNavigationIds') ?? '[]')
@@ -40,8 +42,13 @@ export function ItemDetailScreen({ id }: { id: string }) {
     setDeleted(false)
   }, [id])
 
+  useEffect(() => {
+    if (imageIndex >= images.length) setImageIndex(0)
+  }, [imageIndex, images.length])
+
   if (item === undefined) return <main className="screen loading-screen"><p>読み込んでいます…</p></main>
   if (!item) return <main className="screen empty-state"><h1>アイテムが見つかりません</h1><button className="primary-button" type="button" onClick={() => navigate('collection')}>コレクションへ戻る</button></main>
+  const currentImage = images[imageIndex] ?? images[0]
 
   const toggleFavorite = async () => {
     await db.items.update(id, { isFavorite: !item.isFavorite, updatedAt: new Date() })
@@ -98,7 +105,7 @@ export function ItemDetailScreen({ id }: { id: string }) {
     <main className="screen detail-screen">
       <AppHeader title={isWanted ? 'ほしいもの詳細' : 'アイテム詳細'} back={() => navigate(isWanted ? 'wishlist' : 'collection')} action={isWanted ? undefined : <button className={item.isFavorite ? 'icon-button active' : 'icon-button'} type="button" onClick={toggleFavorite} aria-label="お気に入り"><Heart fill={item.isFavorite ? 'currentColor' : 'none'} aria-hidden="true" /></button>} />
       <section className="detail-gallery" onTouchStart={beginSwipe} onTouchEnd={finishSwipe}>
-        {images.length ? <ItemImage blob={images[imageIndex]?.imageBlob} alt={`${item.name}の写真${imageIndex + 1}`} /> : <ItemImage alt={item.name} />}
+        {currentImage ? <ItemImage blob={currentImage.imageBlob} imageKey={`${currentImage.id}:full`} alt={`${item.name}の写真${imageIndex + 1}`} fit="cover" position={{ x: currentImage.focusX, y: currentImage.focusY }} /> : <ItemImage alt={item.name} />}
         {images.length > 0 && <button className="gallery-expand" type="button" onClick={() => setFullScreen(true)} aria-label="写真を全画面表示"><Maximize2 aria-hidden="true" /></button>}
         {images.length > 1 && <><button className="gallery-arrow left" type="button" onClick={() => setImageIndex((imageIndex - 1 + images.length) % images.length)} aria-label="前の写真"><ChevronLeft aria-hidden="true" /></button><button className="gallery-arrow right" type="button" onClick={() => setImageIndex((imageIndex + 1) % images.length)} aria-label="次の写真"><ChevronRight aria-hidden="true" /></button></>}
         {images.length > 1 && <div className="gallery-dots" aria-label={`${imageIndex + 1} / ${images.length}`}>{images.map((image, index) => <button key={image.id} className={index === imageIndex ? 'active' : ''} onClick={() => setImageIndex(index)} type="button" aria-label={`写真${index + 1}`} />)}</div>}
@@ -127,7 +134,7 @@ export function ItemDetailScreen({ id }: { id: string }) {
         <button className="danger-link" type="button" onClick={remove}><Trash2 aria-hidden="true" />ゴミ箱へ移動</button>
       </section>
 
-      {fullScreen && <div className="image-lightbox" role="dialog" aria-modal="true" aria-label="写真を全画面表示" onTouchStart={beginSwipe} onTouchEnd={finishSwipe}><button type="button" onClick={() => setFullScreen(false)} aria-label="閉じる"><X aria-hidden="true" /></button><ItemImage blob={images[imageIndex]?.imageBlob} alt={item.name} /></div>}
+      {fullScreen && currentImage && <div className="image-lightbox" role="dialog" aria-modal="true" aria-label="写真を全画面表示" onTouchStart={beginSwipe} onTouchEnd={finishSwipe}><button type="button" onClick={() => setFullScreen(false)} aria-label="閉じる"><X aria-hidden="true" /></button><ItemImage blob={currentImage.imageBlob} imageKey={`${currentImage.id}:full`} alt={item.name} /></div>}
       {deleted && <div className="undo-bar" role="status"><span>ゴミ箱へ移動しました</span><button type="button" onClick={undo}>元に戻す</button></div>}
     </main>
   )

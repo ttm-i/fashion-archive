@@ -36,7 +36,7 @@ describe('database operations', () => {
 
   it('seeds default categories', async () => {
     expect(await db.categories.count()).toBe(7)
-    expect((await db.settings.get('schemaVersion'))?.value).toBe(7)
+    expect((await db.settings.get('schemaVersion'))?.value).toBe(8)
   })
 
   it('saves, trashes, restores and permanently empties items', async () => {
@@ -74,7 +74,7 @@ describe('database operations', () => {
     expect(await db.items.count()).toBe(0)
   })
 
-  it('does not rewrite unchanged photo blobs when editing an item', async () => {
+  it('stores order and framing on the item without updating existing photo records', async () => {
     const item = makeItem()
     const makeImage = (id: string, sortOrder: number): ImageRecord => ({
       id,
@@ -93,6 +93,7 @@ describe('database operations', () => {
     await saveItem(item, [makeImage('first', 0), makeImage('second', 1)])
     const stored = await db.images.where('itemId').equals(item.id).sortBy('sortOrder')
     const bulkAdd = vi.spyOn(db.images, 'bulkAdd')
+    const updateImage = vi.spyOn(db.images, 'update')
 
     await saveItem({ ...item, name: '編集後' }, [
       { ...stored[1], sortOrder: 0, focusX: 72, focusY: 31 },
@@ -100,10 +101,18 @@ describe('database operations', () => {
     ])
 
     expect(bulkAdd).not.toHaveBeenCalled()
-    const reordered = await db.images.where('itemId').equals(item.id).sortBy('sortOrder')
-    expect(reordered.map((image) => image.id)).toEqual(['second', 'first'])
-    expect(await reordered[0].imageBlob.text()).toBe('full-second')
-    expect(reordered[0]).toMatchObject({ focusX: 72, focusY: 31 })
+    expect(updateImage).not.toHaveBeenCalled()
+    const unchangedImages = await db.images.where('itemId').equals(item.id).sortBy('sortOrder')
+    expect(unchangedImages.map((image) => image.id)).toEqual(['first', 'second'])
+    expect(await unchangedImages[0].imageBlob.text()).toBe('full-first')
+    expect(await unchangedImages[1].imageBlob.text()).toBe('full-second')
+    expect(await db.items.get(item.id)).toMatchObject({
+      coverImageId: 'second',
+      imageLayout: [
+        { imageId: 'second', focusX: 72, focusY: 31 },
+        { imageId: 'first', focusX: 50, focusY: 50 },
+      ],
+    })
   })
 
   it('upgrades a version 1 database without losing existing items', async () => {
@@ -128,7 +137,7 @@ describe('database operations', () => {
     await initializeDatabase()
 
     expect(await db.items.count()).toBe(1)
-    expect((await db.settings.get('schemaVersion'))?.value).toBe(7)
+    expect((await db.settings.get('schemaVersion'))?.value).toBe(8)
     expect((await db.items.toArray())[0]?.ownershipStatus).toBe('owned')
     expect((await db.items.toArray())[0]?.materials).toEqual([])
     expect((await db.items.toArray())[0]?.measurements).toEqual({})
@@ -177,5 +186,37 @@ describe('database operations', () => {
     await initializeDatabase()
 
     expect(await db.images.get('legacy-image')).toMatchObject({ focusX: 50, focusY: 50 })
+  })
+
+  it('moves legacy photo order and framing into the item without touching its blobs', async () => {
+    await db.delete()
+    const legacy = new Dexie('fashion-archive')
+    legacy.version(7).stores({
+      items: 'id, name, brand, categoryId, purchaseDate, purchaseMethod, ownershipStatus, isFavorite, createdAt, updatedAt, deletedAt',
+      images: 'id, itemId, [itemId+sortOrder], sortOrder',
+      categories: 'id, sortOrder, isActive',
+      settings: 'key',
+      drafts: 'key, itemId, updatedAt',
+    })
+    await legacy.open()
+    const legacyItem = { ...makeItem(), id: 'legacy-layout-item', coverImageId: 'legacy-second' }
+    await legacy.table('items').put(legacyItem)
+    await legacy.table('images').bulkAdd([
+      { id: 'legacy-first', itemId: legacyItem.id, sortOrder: 1, imageBlob: new Blob(['first']), thumbnailBlob: new Blob(['first-thumb']), mimeType: 'image/webp', width: 800, height: 600, byteSize: 5, focusX: 20, focusY: 30, createdAt: new Date() },
+      { id: 'legacy-second', itemId: legacyItem.id, sortOrder: 0, imageBlob: new Blob(['second']), thumbnailBlob: new Blob(['second-thumb']), mimeType: 'image/webp', width: 800, height: 600, byteSize: 6, focusX: 70, focusY: 80, createdAt: new Date() },
+    ])
+    legacy.close()
+
+    await db.open()
+    await initializeDatabase()
+
+    expect(await db.items.get(legacyItem.id)).toMatchObject({
+      coverImageId: 'legacy-second',
+      imageLayout: [
+        { imageId: 'legacy-second', focusX: 70, focusY: 80 },
+        { imageId: 'legacy-first', focusX: 20, focusY: 30 },
+      ],
+    })
+    expect(await (await db.images.get('legacy-second'))?.imageBlob.text()).toBe('second')
   })
 })

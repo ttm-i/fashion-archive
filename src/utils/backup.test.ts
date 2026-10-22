@@ -78,13 +78,13 @@ describe('complete backup', () => {
     })
     await restoreBackup(file)
 
-    expect(await db.items.get(itemId)).toMatchObject({ name: 'バックアップ用コート', coverImageId: imageId, ownershipStatus: 'owned', materials: [{ name: 'ウール', percentage: 100 }], measurements: { shoulderWidth: 47.5, bodyLength: 72 } })
+    expect(await db.items.get(itemId)).toMatchObject({ name: 'バックアップ用コート', coverImageId: imageId, imageLayout: [{ imageId, focusX: 68, focusY: 24 }], ownershipStatus: 'owned', materials: [{ name: 'ウール', percentage: 100 }], measurements: { shoulderWidth: 47.5, bodyLength: 72 } })
     const restoredImage = await db.images.get(imageId)
     expect(restoredImage?.imageBlob.size).toBe(new Blob(['full-image']).size)
     expect(restoredImage?.thumbnailBlob.size).toBe(new Blob(['thumbnail']).size)
     expect(restoredImage).toMatchObject({ focusX: 68, focusY: 24 })
     expect(await db.drafts.count()).toBe(0)
-    expect((await db.settings.get('schemaVersion'))?.value).toBe(7)
+    expect((await db.settings.get('schemaVersion'))?.value).toBe(8)
   })
 
   it('rejects a file that is not a Fashion Archive backup', async () => {

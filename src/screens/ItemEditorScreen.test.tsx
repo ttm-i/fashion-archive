@@ -104,7 +104,7 @@ describe('item editor draft recovery', () => {
     })
   })
 
-  it('saves the adjusted list-photo position without replacing the photo blob', async () => {
+  it('adjusts a non-cover photo without replacing either photo blob', async () => {
     const now = new Date('2026-10-22T00:00:00.000Z')
     const item: ItemRecord = {
       id: 'focus-item', name: '表示位置テスト', brand: '', categoryId: null, size: '', color: '', materials: [], measurements: {},
@@ -116,16 +116,24 @@ describe('item editor draft recovery', () => {
       id: 'focus-image', itemId: item.id, sortOrder: 0, imageBlob: fullBlob, thumbnailBlob: new Blob(['thumb'], { type: 'image/webp' }),
       mimeType: 'image/webp', width: 1200, height: 1600, byteSize: fullBlob.size, focusX: 50, focusY: 50, createdAt: now,
     }
-    await saveItem(item, [image])
+    const secondBlob = new Blob(['unchanged-second-photo'], { type: 'image/webp' })
+    const secondImage: ImageRecord = {
+      ...image, id: 'focus-image-2', sortOrder: 1, imageBlob: secondBlob, thumbnailBlob: new Blob(['thumb-2'], { type: 'image/webp' }), byteSize: secondBlob.size,
+    }
+    await saveItem(item, [image, secondImage])
     render(<ItemEditorScreen id={item.id} />)
 
-    fireEvent.click(await screen.findByRole('button', { name: '一覧写真の表示位置を調整' }))
+    fireEvent.click(await screen.findByRole('button', { name: '写真2の表示位置を調整' }))
     fireEvent.change(screen.getByLabelText('左右'), { target: { value: '73' } })
     fireEvent.change(screen.getByLabelText('上下'), { target: { value: '28' } })
     fireEvent.click(screen.getByRole('button', { name: 'この位置に決定' }))
     fireEvent.click(screen.getByRole('button', { name: '保存する' }))
 
-    await waitFor(async () => expect(await db.images.get(image.id)).toMatchObject({ focusX: 73, focusY: 28 }))
+    await waitFor(async () => expect(await db.items.get(item.id)).toMatchObject({ imageLayout: [
+      { imageId: image.id, focusX: 50, focusY: 50 },
+      { imageId: secondImage.id, focusX: 73, focusY: 28 },
+    ] }))
     expect(await (await db.images.get(image.id))?.imageBlob.text()).toBe('unchanged-photo')
+    expect(await (await db.images.get(secondImage.id))?.imageBlob.text()).toBe('unchanged-second-photo')
   })
 })

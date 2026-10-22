@@ -25,6 +25,12 @@ export type MeasurementKey = 'shoulderWidth' | 'chestWidth' | 'bodyLength' | 'sl
 export type ItemMeasurements = Partial<Record<MeasurementKey, number>>
 export type MeasurementDraft = Record<MeasurementKey, string>
 
+export interface ImageLayoutEntry {
+  imageId: string
+  focusX: number
+  focusY: number
+}
+
 export interface ItemRecord {
   id: string
   name: string
@@ -43,6 +49,7 @@ export interface ItemRecord {
   isFavorite: boolean
   ownershipStatus: OwnershipStatus
   coverImageId: string | null
+  imageLayout?: ImageLayoutEntry[]
   createdAt: Date
   updatedAt: Date
   deletedAt: Date | null
