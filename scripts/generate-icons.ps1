@@ -14,26 +14,26 @@ function New-FashionArchiveIcon {
   $scale = $Size / 512.0
 
   $graphics.ScaleTransform($scale, $scale)
-  $pen = [System.Drawing.Pen]::new([System.Drawing.ColorTranslator]::FromHtml('#20283a'), 24)
+  $pen = [System.Drawing.Pen]::new([System.Drawing.ColorTranslator]::FromHtml('#20283a'), 20)
   $pen.StartCap = [System.Drawing.Drawing2D.LineCap]::Round
   $pen.EndCap = [System.Drawing.Drawing2D.LineCap]::Round
   $pen.LineJoin = [System.Drawing.Drawing2D.LineJoin]::Round
 
   $hook = [System.Drawing.Drawing2D.GraphicsPath]::new()
-  $hook.AddBezier(210, 156, 210, 114, 244, 82, 286, 82)
-  $hook.AddBezier(286, 82, 330, 82, 364, 116, 364, 160)
-  $hook.AddBezier(364, 160, 364, 195, 345, 220, 314, 235)
-  $hook.AddBezier(314, 235, 280, 252, 256, 273, 256, 289)
-  $hook.AddLine(256, 289, 256, 306)
+  $hook.AddBezier(226, 170, 226, 140, 250, 116, 280, 116)
+  $hook.AddBezier(280, 116, 312, 116, 336, 141, 336, 173)
+  $hook.AddBezier(336, 173, 336, 198, 322, 215, 300, 226)
+  $hook.AddBezier(300, 226, 278, 237, 256, 248, 256, 270)
+  $hook.AddLine(256, 270, 256, 292)
   $graphics.DrawPath($pen, $hook)
 
   $hanger = [System.Drawing.Drawing2D.GraphicsPath]::new()
-  $hanger.AddLine(256, 306, 110, 390)
-  $hanger.AddBezier(110, 390, 98, 397, 92, 408, 92, 421)
-  $hanger.AddBezier(92, 435, 103, 444, 118, 444, 394, 444)
-  $hanger.AddBezier(394, 444, 409, 444, 420, 435, 420, 421)
-  $hanger.AddBezier(420, 421, 420, 408, 414, 397, 402, 390)
-  $hanger.AddLine(402, 390, 256, 306)
+  $hanger.AddLine(256, 292, 104, 380)
+  $hanger.AddBezier(104, 380, 92, 387, 86, 398, 86, 411)
+  $hanger.AddBezier(86, 428, 98, 440, 116, 440, 396, 440)
+  $hanger.AddBezier(396, 440, 414, 440, 426, 428, 426, 411)
+  $hanger.AddBezier(426, 411, 426, 398, 420, 387, 408, 380)
+  $hanger.AddLine(408, 380, 256, 292)
   $graphics.DrawPath($pen, $hanger)
 
   $bitmap.Save($OutputPath, [System.Drawing.Imaging.ImageFormat]::Png)
