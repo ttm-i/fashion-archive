@@ -4,6 +4,7 @@ export interface CollectionFilter {
   categoryId: string
   brand: string
   color: string
+  purchaseSource: string
   purchaseDateFrom: string
   purchaseDateTo: string
   purchaseMethod: string
@@ -19,7 +20,7 @@ export interface CollectionViewState {
 }
 
 export const EMPTY_COLLECTION_FILTER: CollectionFilter = {
-  categoryId: '', brand: '', color: '', purchaseDateFrom: '', purchaseDateTo: '', purchaseMethod: '', favoriteOnly: false, minPrice: '', maxPrice: '',
+  categoryId: '', brand: '', color: '', purchaseSource: '', purchaseDateFrom: '', purchaseDateTo: '', purchaseMethod: '', favoriteOnly: false, minPrice: '', maxPrice: '',
 }
 
 export const DEFAULT_COLLECTION_VIEW: CollectionViewState = {
@@ -70,12 +71,13 @@ export function filterAndSortItems(items: ItemRecord[], query: string, filter: C
   const result = items.filter((item) => {
     const haystack = [item.name, item.brand, item.color, item.purchaseSource, item.notes].join(' ').toLocaleLowerCase('ja')
     if (normalized && !haystack.includes(normalized)) return false
-    if (filter.categoryId && item.categoryId !== filter.categoryId) return false
-    if (filter.brand && item.brand !== filter.brand) return false
-    if (filter.color && item.color !== filter.color) return false
+    if (filter.categoryId && (filter.categoryId === '__unset__' ? item.categoryId !== null : item.categoryId !== filter.categoryId)) return false
+    if (filter.brand && (filter.brand === '__unset__' ? Boolean(item.brand) : item.brand !== filter.brand)) return false
+    if (filter.color && (filter.color === '__unset__' ? Boolean(item.color) : item.color !== filter.color)) return false
+    if (filter.purchaseSource && (filter.purchaseSource === '__unset__' ? Boolean(item.purchaseSource) : item.purchaseSource !== filter.purchaseSource)) return false
     if (filter.purchaseDateFrom && (!item.purchaseDate || item.purchaseDate < filter.purchaseDateFrom)) return false
     if (filter.purchaseDateTo && (!item.purchaseDate || item.purchaseDate > filter.purchaseDateTo)) return false
-    if (filter.purchaseMethod && item.purchaseMethod !== filter.purchaseMethod) return false
+    if (filter.purchaseMethod && (filter.purchaseMethod === '__unset__' ? item.purchaseMethod !== null : item.purchaseMethod !== filter.purchaseMethod)) return false
     if (filter.favoriteOnly && !item.isFavorite) return false
     if (min !== null && (item.purchasePrice === null || item.purchasePrice < min)) return false
     if (max !== null && (item.purchasePrice === null || item.purchasePrice > max)) return false

@@ -24,4 +24,13 @@ describe('collection view', () => {
     saveCollectionViewState({ query: 'コート', sort: 'brand', filter: { ...EMPTY_COLLECTION_FILTER, color: 'ネイビー', favoriteOnly: true } })
     expect(loadCollectionViewState()).toMatchObject({ query: 'コート', sort: 'brand', filter: { color: 'ネイビー', favoriteOnly: true } })
   })
+
+  it('filters by purchase source and values that are not set', () => {
+    const items = [
+      { ...item('1', '', '2026-01-01', 10000), brand: '', purchaseSource: '' },
+      { ...item('2', '', '2026-01-01', 10000), brand: 'TEST', purchaseSource: '公式ストア' },
+    ]
+    expect(filterAndSortItems(items, '', { ...EMPTY_COLLECTION_FILTER, purchaseSource: '公式ストア' }, 'name').map((value) => value.id)).toEqual(['2'])
+    expect(filterAndSortItems(items, '', { ...EMPTY_COLLECTION_FILTER, brand: '__unset__' }, 'name').map((value) => value.id)).toEqual(['1'])
+  })
 })

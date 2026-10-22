@@ -257,9 +257,19 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .insight-section h2 { margin: 0 0 17px; font: 600 20px/1.2 Georgia, "Yu Mincho", serif; }
 .insight-list { display: grid; gap: 14px; }
 .insight-row__head { display: flex; justify-content: space-between; gap: 12px; font-size: 12px; }
+.insight-row__head > span:first-child { min-width: 0; overflow-wrap: anywhere; }
 .insight-row__head strong { white-space: nowrap; font-size: 11px; }
+.insight-row__head svg { width: 14px; height: 14px; flex: 0 0 auto; color: var(--accent); }
+.insight-row.selectable { width: 100%; min-height: 44px; margin: -5px 0; padding: 5px 0; border: 0; background: transparent; color: inherit; text-align: left; }
+.insight-row.selectable .insight-row__head { align-items: center; }
 .insight-bar { height: 7px; margin-top: 6px; background: var(--accent-soft); }
 .insight-bar span { display: block; height: 100%; background: var(--accent); }
+.insight-expand { width: 100%; min-height: 48px; padding: 9px 0 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; border: 0; border-top: 1px solid var(--line); background: transparent; color: var(--accent); text-align: left; }
+.insight-expand > div { display: grid; gap: 3px; color: var(--ink); }
+.insight-expand > div strong { font-size: 12px; }
+.insight-expand > div span { color: var(--muted); font-size: 10px; }
+.insight-expand > span { display: flex; align-items: center; gap: 3px; white-space: nowrap; font-size: 11px; }
+.insight-expand svg { width: 15px; height: 15px; }
 .muted { color: var(--muted); font-size: 13px; }
 
 .settings-group { margin: 0 16px 20px; }
