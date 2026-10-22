@@ -4,3 +4,4 @@ import { Blob, File } from 'node:buffer'
 
 Object.defineProperty(globalThis, 'Blob', { configurable: true, value: Blob })
 Object.defineProperty(globalThis, 'File', { configurable: true, value: File })
+Object.defineProperty(window, 'scrollTo', { configurable: true, value: () => undefined })

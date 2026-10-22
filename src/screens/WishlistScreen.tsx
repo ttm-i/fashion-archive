@@ -25,12 +25,12 @@ export function WishlistScreen() {
 
   return (
     <main className="screen screen--with-nav wishlist-screen">
-      <AppHeader title="ほしいもの" />
-      <section className="collection-heading wishlist-heading"><div><h1>ほしいもの</h1><p>{filtered.length === items.length ? `${items.length} candidates` : `${filtered.length} / ${items.length} candidates`}</p></div></section>
+      <AppHeader title="ウィッシュリスト" />
+      <section className="collection-heading wishlist-heading"><div><h1>ウィッシュリスト</h1><p>{filtered.length === items.length ? `${items.length} candidates` : `${filtered.length} / ${items.length} candidates`}</p></div></section>
       <BackupReminder />
       <label className="search-field">
         <Search aria-hidden="true" />
-        <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="アイテム名、ブランドなど" aria-label="ほしいものを検索" />
+        <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="アイテム名、ブランドなど" aria-label="ウィッシュリストを検索" />
         {query && <button type="button" onClick={() => setQuery('')} aria-label="検索をクリア"><X aria-hidden="true" /></button>}
       </label>
       <div className="wishlist-spacer" />
@@ -39,14 +39,14 @@ export function WishlistScreen() {
           <span>WISHLIST</span>
           <h2>{items.length === 0 ? '気になる一着を残しましょう' : '検索に合う候補がありません'}</h2>
           <p>{items.length === 0 ? '名前だけでも登録でき、購入後はコレクションへ移せます。' : '検索語を変更してください。'}</p>
-          {items.length === 0 && <button className="primary-button" type="button" onClick={() => navigate('new-wanted')}>ほしいものを登録</button>}
+          {items.length === 0 && <button className="primary-button" type="button" onClick={() => navigate('new-wanted')}>ウィッシュリストに登録</button>}
         </section>
       ) : (
-        <section className="item-grid" aria-label="ほしいもの一覧">
+        <section className="item-grid" aria-label="ウィッシュリスト一覧">
           {filtered.map((item) => <WishlistCard key={item.id} item={item} image={item.coverImageId ? imageMap.get(item.coverImageId) : undefined} navigationIds={navigationIds} />)}
         </section>
       )}
-      <button className="floating-add" type="button" onClick={() => navigate('new-wanted')} aria-label="ほしいものを登録"><Plus aria-hidden="true" /></button>
+      <button className="floating-add" type="button" onClick={() => navigate('new-wanted')} aria-label="ウィッシュリストに登録"><Plus aria-hidden="true" /></button>
     </main>
   )
 }

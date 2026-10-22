@@ -225,7 +225,7 @@ export async function exportCsv() {
     item.purchaseDate ?? '',
     item.purchaseMethod ?? '',
     item.purchaseSource,
-    item.ownershipStatus === 'wanted' ? 'ほしいもの' : '所有',
+    item.ownershipStatus === 'wanted' ? 'ウィッシュリスト' : '所有',
     item.isFavorite ? 'はい' : 'いいえ',
     item.notes,
     item.createdAt.toISOString(),

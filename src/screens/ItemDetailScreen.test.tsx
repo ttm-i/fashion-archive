@@ -58,7 +58,12 @@ describe('item detail navigation', () => {
     const first = await screen.findByAltText('写真付きアイテムの写真1') as HTMLImageElement
     expect(first.style.objectFit).toBe('cover')
     expect(first.style.objectPosition).toBe('75% 20%')
+    expect(first.classList.contains('active')).toBe(true)
+    const second = await screen.findByAltText('写真付きアイテムの写真2') as HTMLImageElement
+    expect(second.classList.contains('active')).toBe(false)
     fireEvent.click(screen.getByRole('button', { name: '次の写真' }))
-    expect((await screen.findByAltText('写真付きアイテムの写真2') as HTMLImageElement).style.objectPosition).toBe('30% 80%')
+    expect(second.style.objectPosition).toBe('30% 80%')
+    expect(second.classList.contains('active')).toBe(true)
+    expect(first.classList.contains('active')).toBe(false)
   })
 })

@@ -40,6 +40,7 @@ export function ItemDetailScreen({ id }: { id: string }) {
     setImageIndex(0)
     setFullScreen(false)
     setDeleted(false)
+    requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'auto' }))
   }, [id])
 
   useEffect(() => {
@@ -102,10 +103,12 @@ export function ItemDetailScreen({ id }: { id: string }) {
   }
 
   return (
-    <main className="screen detail-screen">
-      <AppHeader title={isWanted ? 'ほしいもの詳細' : 'アイテム詳細'} back={() => navigate(isWanted ? 'wishlist' : 'collection')} action={isWanted ? undefined : <button className={item.isFavorite ? 'icon-button active' : 'icon-button'} type="button" onClick={toggleFavorite} aria-label="お気に入り"><Heart fill={item.isFavorite ? 'currentColor' : 'none'} aria-hidden="true" /></button>} />
+    <main className={`screen detail-screen${previousId || nextId ? ' detail-screen--with-item-nav' : ''}`}>
+      <AppHeader title={isWanted ? 'ウィッシュリスト詳細' : 'アイテム詳細'} back={() => navigate(isWanted ? 'wishlist' : 'collection')} action={isWanted ? undefined : <button className={item.isFavorite ? 'icon-button active' : 'icon-button'} type="button" onClick={toggleFavorite} aria-label="お気に入り"><Heart fill={item.isFavorite ? 'currentColor' : 'none'} aria-hidden="true" /></button>} />
       <section className="detail-gallery" onTouchStart={beginSwipe} onTouchEnd={finishSwipe}>
-        {currentImage ? <ItemImage blob={currentImage.imageBlob} imageKey={`${currentImage.id}:full`} alt={`${item.name}の写真${imageIndex + 1}`} fit="cover" position={{ x: currentImage.focusX, y: currentImage.focusY }} /> : <ItemImage alt={item.name} />}
+        {images.length > 0 ? <div className="detail-gallery__images">
+          {images.map((image, index) => <ItemImage key={image.id} blob={image.imageBlob} imageKey={`${image.id}:full`} className={`detail-gallery__image${index === imageIndex ? ' active' : ''}`} alt={`${item.name}の写真${index + 1}`} fit="cover" position={{ x: image.focusX, y: image.focusY }} />)}
+        </div> : <ItemImage alt={item.name} />}
         {images.length > 0 && <button className="gallery-expand" type="button" onClick={() => setFullScreen(true)} aria-label="写真を全画面表示"><Maximize2 aria-hidden="true" /></button>}
         {images.length > 1 && <><button className="gallery-arrow left" type="button" onClick={() => setImageIndex((imageIndex - 1 + images.length) % images.length)} aria-label="前の写真"><ChevronLeft aria-hidden="true" /></button><button className="gallery-arrow right" type="button" onClick={() => setImageIndex((imageIndex + 1) % images.length)} aria-label="次の写真"><ChevronRight aria-hidden="true" /></button></>}
         {images.length > 1 && <div className="gallery-dots" aria-label={`${imageIndex + 1} / ${images.length}`}>{images.map((image, index) => <button key={image.id} className={index === imageIndex ? 'active' : ''} onClick={() => setImageIndex(index)} type="button" aria-label={`写真${index + 1}`} />)}</div>}
@@ -128,12 +131,12 @@ export function ItemDetailScreen({ id }: { id: string }) {
         {(item.materials ?? []).length > 0 && <div className="detail-materials"><span>MATERIAL</span><div>{item.materials.map((material) => <p key={material.id}><strong>{material.name}</strong>{material.percentage !== null && <span>{material.percentage}%</span>}</p>)}</div></div>}
         {measurements.length > 0 && <div className="detail-measurements"><span>MEASUREMENTS</span><div>{measurements.map((measurement) => <p key={measurement.key}><span>{measurement.label}</span><strong>{measurement.value} cm</strong></p>)}</div></div>}
         {item.notes && <div className="detail-notes"><span>NOTES</span><p>{item.notes}</p></div>}
-        {(previousId || nextId) && <nav className="detail-item-nav" aria-label="前後のアイテム"><button type="button" disabled={!previousId} onClick={() => openAdjacent(previousId)}><ChevronLeft aria-hidden="true" />前のアイテム</button><span>{navigationIndex + 1} / {navigationIds.length}</span><button type="button" disabled={!nextId} onClick={() => openAdjacent(nextId)}>次のアイテム<ChevronRight aria-hidden="true" /></button></nav>}
         {isWanted && <button className="primary-button block acquire-button" type="button" onClick={() => navigate(`acquire/${id}`, true)}>購入済みにする</button>}
         <button className={isWanted ? 'secondary-button block' : 'primary-button block'} type="button" onClick={() => navigate(isWanted ? `edit-wanted/${id}` : `edit/${id}`, true)}><Pencil aria-hidden="true" />編集する</button>
         <button className="danger-link" type="button" onClick={remove}><Trash2 aria-hidden="true" />ゴミ箱へ移動</button>
       </section>
 
+      {(previousId || nextId) && <nav className="detail-item-nav" aria-label="前後のアイテム"><button type="button" disabled={!previousId} onClick={() => openAdjacent(previousId)}><ChevronLeft aria-hidden="true" />前のアイテム</button><span>{navigationIndex + 1} / {navigationIds.length}</span><button type="button" disabled={!nextId} onClick={() => openAdjacent(nextId)}>次のアイテム<ChevronRight aria-hidden="true" /></button></nav>}
       {fullScreen && currentImage && <div className="image-lightbox" role="dialog" aria-modal="true" aria-label="写真を全画面表示" onTouchStart={beginSwipe} onTouchEnd={finishSwipe}><button type="button" onClick={() => setFullScreen(false)} aria-label="閉じる"><X aria-hidden="true" /></button><ItemImage blob={currentImage.imageBlob} imageKey={`${currentImage.id}:full`} alt={item.name} /></div>}
       {deleted && <div className="undo-bar" role="status"><span>ゴミ箱へ移動しました</span><button type="button" onClick={undo}>元に戻す</button></div>}
     </main>

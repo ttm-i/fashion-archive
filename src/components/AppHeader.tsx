@@ -16,8 +16,8 @@ export function AppHeader({ title, eyebrow, back, action }: Props) {
             <ChevronLeft aria-hidden="true" />
           </button>
         ) : (
-          <div className="brand-lockup" aria-label="Fashion Archive">
-            <span>FASHION</span>
+          <div className="brand-lockup" aria-label="My Archive">
+            <span>MY</span>
             <b>Archive</b>
           </div>
         )}

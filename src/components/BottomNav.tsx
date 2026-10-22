@@ -10,7 +10,7 @@ export function BottomNav({ active }: { active: 'collection' | 'wishlist' | 'ins
       </button>
       <button className={active === 'wishlist' ? 'active' : ''} onClick={() => navigate('wishlist')} type="button">
         <Bookmark aria-hidden="true" />
-        <span>ほしいもの</span>
+        <span>ウィッシュリスト</span>
       </button>
       <button className={active === 'insights' ? 'active' : ''} onClick={() => navigate('insights')} type="button">
         <BarChart3 aria-hidden="true" />

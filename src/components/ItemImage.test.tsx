@@ -51,7 +51,7 @@ describe('ItemImage', () => {
     expect(URL.createObjectURL).toHaveBeenCalledTimes(1)
   })
 
-  it('tries one fresh object URL when iOS reports a display error', () => {
+  it('tries a fresh object URL and then offers a manual reload when iOS reports display errors', () => {
     const blob = new Blob(['photo'], { type: 'image/webp' })
     const view = render(<ItemImage blob={blob} imageKey="recover-photo:full" alt="写真" />)
     expect(view.getByRole('img').getAttribute('src')).toBe('blob:test-1')
@@ -59,6 +59,10 @@ describe('ItemImage', () => {
     fireEvent.error(view.getByRole('img'))
     expect(view.getByRole('img').getAttribute('src')).toBe('blob:test-2')
     fireEvent.error(view.getByRole('img'))
+    expect(view.getByRole('button', { name: '写真を再読み込み' })).toBeTruthy()
     expect(URL.createObjectURL).toHaveBeenCalledTimes(2)
+
+    fireEvent.click(view.getByRole('button', { name: '写真を再読み込み' }))
+    expect(view.getByRole('img').getAttribute('src')).toBe('blob:test-3')
   })
 })

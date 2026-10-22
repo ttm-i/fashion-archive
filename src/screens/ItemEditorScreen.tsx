@@ -263,9 +263,9 @@ export function ItemEditorScreen({ id, mode = 'owned' }: { id?: string; mode?: '
 
   return (
     <main className="screen editor-screen">
-      <AppHeader title={isAcquire ? '購入済みにする' : isWanted ? (id ? 'ほしいものを編集' : 'ほしいものを追加') : (id ? 'アイテムを編集' : '新しいアイテム')} back={goBack} action={<button className="text-action" type="button" onClick={submit} disabled={saving || processing}>{isAcquire ? '登録' : '保存'}</button>} />
+      <AppHeader title={isAcquire ? '購入済みにする' : isWanted ? (id ? 'ウィッシュリストを編集' : 'ウィッシュリストに追加') : (id ? 'アイテムを編集' : '新しいアイテム')} back={goBack} action={<button className="text-action" type="button" onClick={submit} disabled={saving || processing}>{isAcquire ? '登録' : '保存'}</button>} />
       <form onSubmit={(event) => { event.preventDefault(); submit() }}>
-        <section className="editor-intro"><span>{isAcquire ? 'MOVE TO COLLECTION' : isWanted ? 'WISHLIST' : 'NEW RECORD'}</span><h1>{isAcquire ? '購入情報を追加' : isWanted ? (id ? '購入候補を編集' : '気になる一着を記録') : (id ? 'アイテムを編集' : '新しい一着を記録')}</h1><p>{isAcquire ? '保存すると、ほしいものからコレクションへ移動します。' : '写真と名前だけでも保存できます。'}</p></section>
+        <section className="editor-intro"><span>{isAcquire ? 'MOVE TO COLLECTION' : isWanted ? 'WISHLIST' : 'NEW RECORD'}</span><h1>{isAcquire ? '購入情報を追加' : isWanted ? (id ? '購入候補を編集' : '気になる一着を記録') : (id ? 'アイテムを編集' : '新しい一着を記録')}</h1><p>{isAcquire ? '保存すると、ウィッシュリストからコレクションへ移動します。' : '写真と名前だけでも保存できます。'}</p></section>
 
         <section className="editor-section photo-editor">
           <div className="section-heading"><div><span>PHOTOS</span><h2>写真</h2></div><p>{images.length} / 3</p></div>

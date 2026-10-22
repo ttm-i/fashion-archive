@@ -85,6 +85,10 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .wishlist-badge { position: absolute; top: 8px; left: 8px; padding: 5px 7px; background: rgba(23,22,20,.82); color: #fff; font-size: 8px; font-weight: 700; letter-spacing: .12em; }
 .image-placeholder { display: grid; place-items: center; background: var(--soft); color: #b4aca3; }
 .image-placeholder svg { width: 25px; height: 25px; }
+.image-load-error { width: 100%; height: 100%; padding: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; background: var(--soft); color: var(--muted); text-align: center; font-size: 11px; }
+.image-load-error > svg { width: 24px; height: 24px; }
+.image-load-error button { min-height: 38px; padding: 0 12px; display: flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--accent); font-size: 11px; font-weight: 700; }
+.image-load-error button svg { width: 14px; height: 14px; }
 .floating-add { position: fixed; z-index: 29; right: max(20px, calc((100vw - 600px) / 2)); bottom: calc(80px + env(safe-area-inset-bottom)); width: 56px; height: 56px; padding: 0; border: 0; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: #fff; box-shadow: 0 10px 26px rgba(217,107,79,.35); }
 .floating-add svg { width: 25px; }
 
@@ -215,16 +219,21 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 
 .detail-gallery { position: relative; aspect-ratio: 1; max-height: 640px; overflow: hidden; display: grid; place-items: center; background: var(--surface); }
 .detail-gallery > img, .detail-gallery > .image-placeholder { width: 100%; height: 100%; object-fit: cover; }
-.gallery-expand, .gallery-arrow { position: absolute; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%; display: grid; place-items: center; background: rgba(255,255,255,.91); }
+.detail-gallery__images { position: absolute; z-index: 0; inset: 0; background: var(--surface); }
+.detail-gallery__image { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; visibility: hidden; object-fit: cover; transition: opacity 180ms ease, visibility 0s linear 180ms; }
+.detail-gallery__image.active { z-index: 1; opacity: 1; visibility: visible; transition-delay: 0s; }
+.detail-gallery__images > .image-load-error { width: 100%; height: 100%; }
+.gallery-expand, .gallery-arrow { position: absolute; z-index: 2; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%; display: grid; place-items: center; background: rgba(255,255,255,.91); }
 .gallery-expand { top: 12px; right: 12px; }
 .gallery-arrow { top: 50%; transform: translateY(-50%); }
 .gallery-arrow.left { left: 8px; }
 .gallery-arrow.right { right: 8px; }
 .gallery-arrow svg, .gallery-expand svg { width: 19px; }
-.gallery-dots { position: absolute; bottom: 13px; left: 50%; transform: translateX(-50%); display: flex; gap: 7px; }
+.gallery-dots { position: absolute; z-index: 2; bottom: 13px; left: 50%; transform: translateX(-50%); display: flex; gap: 7px; }
 .gallery-dots button { width: 8px; height: 8px; padding: 0; border: 0; border-radius: 50%; background: #c7beb4; }
 .gallery-dots button.active { background: var(--accent); }
 .detail-content { margin-top: -1px; padding: 24px 20px calc(34px + env(safe-area-inset-bottom)); background: var(--bg); }
+.detail-screen--with-item-nav .detail-content { padding-bottom: calc(94px + env(safe-area-inset-bottom)); }
 .detail-brand { color: var(--accent); font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
 .detail-content h1 { margin: 6px 0 10px; font: 600 29px/1.14 Georgia, "Yu Mincho", serif; }
 .detail-price { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
@@ -247,8 +256,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .detail-measurements p strong { font-size: 13px; font-variant-numeric: tabular-nums; }
 .detail-notes { margin: 20px 0 28px; }
 .detail-notes p { white-space: pre-wrap; color: #4f4a45; font-size: 14px; line-height: 1.75; }
-.detail-item-nav { margin: 0 0 16px; padding: 10px 0; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 5px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
-.detail-item-nav button { min-height: 44px; padding: 0; display: flex; align-items: center; gap: 3px; border: 0; background: transparent; color: var(--accent); font-size: 11px; font-weight: 700; }
+.detail-item-nav { position: fixed; z-index: 30; left: 50%; bottom: 0; width: min(640px, 100%); min-height: calc(62px + env(safe-area-inset-bottom)); padding: 7px 16px env(safe-area-inset-bottom); transform: translateX(-50%); display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 5px; background: rgba(255,255,255,.96); backdrop-filter: blur(18px); border-top: 1px solid var(--line); }
+.detail-item-nav button { min-height: 48px; padding: 0; display: flex; align-items: center; gap: 3px; border: 0; background: transparent; color: var(--accent); font-size: 11px; font-weight: 700; }
 .detail-item-nav button:last-child { justify-content: flex-end; }
 .detail-item-nav button:disabled { color: #bbb3aa; }
 .detail-item-nav button svg { width: 17px; }
