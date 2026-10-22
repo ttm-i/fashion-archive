@@ -78,6 +78,7 @@ describe('item editor draft recovery', () => {
   it('records optional measurements for a supported category', async () => {
     render(<ItemEditorScreen />)
     fireEvent.change(await screen.findByLabelText(/アイテム名/), { target: { value: '採寸テスト' } })
+    await screen.findByRole('option', { name: 'トップス' })
     fireEvent.change(screen.getByLabelText('カテゴリー'), { target: { value: 'tops' } })
     fireEvent.change(await screen.findByLabelText('肩幅（cm）'), { target: { value: '47.5' } })
     fireEvent.change(screen.getByLabelText('着丈（cm）'), { target: { value: '72' } })
@@ -92,6 +93,7 @@ describe('item editor draft recovery', () => {
   it('discards measurements that do not belong to the final category', async () => {
     render(<ItemEditorScreen />)
     fireEvent.change(await screen.findByLabelText(/アイテム名/), { target: { value: 'カテゴリー変更テスト' } })
+    await screen.findByRole('option', { name: 'トップス' })
     fireEvent.change(screen.getByLabelText('カテゴリー'), { target: { value: 'tops' } })
     fireEvent.change(await screen.findByLabelText('肩幅（cm）'), { target: { value: '48' } })
     fireEvent.change(screen.getByLabelText('カテゴリー'), { target: { value: 'bottoms' } })
