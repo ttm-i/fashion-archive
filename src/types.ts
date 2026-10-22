@@ -21,6 +21,10 @@ export interface MaterialDraft {
   percentage: string
 }
 
+export type MeasurementKey = 'shoulderWidth' | 'chestWidth' | 'bodyLength' | 'sleeveLength' | 'waist' | 'rise' | 'inseam' | 'thighWidth' | 'hemWidth'
+export type ItemMeasurements = Partial<Record<MeasurementKey, number>>
+export type MeasurementDraft = Record<MeasurementKey, string>
+
 export interface ItemRecord {
   id: string
   name: string
@@ -29,6 +33,7 @@ export interface ItemRecord {
   size: string
   color: string
   materials: MaterialEntry[]
+  measurements: ItemMeasurements
   originalPrice: number | null
   purchasePrice: number | null
   purchaseDate: string | null
@@ -93,6 +98,7 @@ export interface ItemDraft {
   size: string
   color: string
   materials: MaterialDraft[]
+  measurements: MeasurementDraft
   originalPrice: string
   purchasePrice: string
   purchaseDate: string

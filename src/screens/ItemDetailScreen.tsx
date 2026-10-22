@@ -6,6 +6,7 @@ import { ItemImage } from '../components/ItemImage'
 import { db, markDataChanged, moveItemToTrash, restoreItem } from '../db'
 import { navigate } from '../hooks/useRoute'
 import { formatDate, formatYen } from '../utils/format'
+import { measurementEntries } from '../utils/measurements'
 
 export function ItemDetailScreen({ id }: { id: string }) {
   const item = useLiveQuery(() => db.items.get(id), [id])
@@ -56,6 +57,7 @@ export function ItemDetailScreen({ id }: { id: string }) {
     setDeleted(false)
   }
   const savings = item.originalPrice !== null && item.purchasePrice !== null && item.originalPrice > item.purchasePrice ? item.originalPrice - item.purchasePrice : null
+  const measurements = measurementEntries(item.measurements)
   const beginSwipe = (event: React.TouchEvent) => {
     const touch = event.touches[0]
     touchStart.current = touch ? { x: touch.clientX, y: touch.clientY } : null
@@ -117,6 +119,7 @@ export function ItemDetailScreen({ id }: { id: string }) {
         </div>
 
         {(item.materials ?? []).length > 0 && <div className="detail-materials"><span>MATERIAL</span><div>{item.materials.map((material) => <p key={material.id}><strong>{material.name}</strong>{material.percentage !== null && <span>{material.percentage}%</span>}</p>)}</div></div>}
+        {measurements.length > 0 && <div className="detail-measurements"><span>MEASUREMENTS</span><div>{measurements.map((measurement) => <p key={measurement.key}><span>{measurement.label}</span><strong>{measurement.value} cm</strong></p>)}</div></div>}
         {item.notes && <div className="detail-notes"><span>NOTES</span><p>{item.notes}</p></div>}
         {(previousId || nextId) && <nav className="detail-item-nav" aria-label="前後のアイテム"><button type="button" disabled={!previousId} onClick={() => openAdjacent(previousId)}><ChevronLeft aria-hidden="true" />前のアイテム</button><span>{navigationIndex + 1} / {navigationIds.length}</span><button type="button" disabled={!nextId} onClick={() => openAdjacent(nextId)}>次のアイテム<ChevronRight aria-hidden="true" /></button></nav>}
         {isWanted && <button className="primary-button block acquire-button" type="button" onClick={() => navigate(`acquire/${id}`, true)}>購入済みにする</button>}

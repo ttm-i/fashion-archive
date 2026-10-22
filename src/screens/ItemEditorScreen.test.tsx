@@ -35,7 +35,7 @@ describe('item editor draft recovery', () => {
   it('moves a wanted item into the owned collection after purchase details are saved', async () => {
     const now = new Date('2026-10-22T00:00:00.000Z')
     const wanted: ItemRecord = {
-      id: 'wanted-item', name: '購入候補のコート', brand: 'TEST', categoryId: 'outerwear', size: '', color: '', materials: [],
+      id: 'wanted-item', name: '購入候補のコート', brand: 'TEST', categoryId: 'outerwear', size: '', color: '', materials: [], measurements: {},
       originalPrice: 50000, purchasePrice: null, purchaseDate: null, purchaseMethod: null, purchaseSource: '候補店', notes: '',
       isFavorite: false, ownershipStatus: 'wanted', coverImageId: null, createdAt: now, updatedAt: now, deletedAt: null, schemaVersion: 2,
     }
@@ -72,6 +72,20 @@ describe('item editor draft recovery', () => {
     await waitFor(async () => {
       const saved = await db.items.where('name').equals('素材テスト').first()
       expect(saved?.materials).toEqual([{ id: expect.any(String), name: 'ウール', percentage: 100 }])
+    })
+  })
+
+  it('records optional measurements for a supported category', async () => {
+    render(<ItemEditorScreen />)
+    fireEvent.change(await screen.findByLabelText(/アイテム名/), { target: { value: '採寸テスト' } })
+    fireEvent.change(screen.getByLabelText('カテゴリー'), { target: { value: 'tops' } })
+    fireEvent.change(await screen.findByLabelText('肩幅（cm）'), { target: { value: '47.5' } })
+    fireEvent.change(screen.getByLabelText('着丈（cm）'), { target: { value: '72' } })
+    fireEvent.click(screen.getByRole('button', { name: '保存する' }))
+
+    await waitFor(async () => {
+      const saved = await db.items.where('name').equals('採寸テスト').first()
+      expect(saved?.measurements).toEqual({ shoulderWidth: 47.5, bodyLength: 72 })
     })
   })
 })

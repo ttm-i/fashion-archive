@@ -6,14 +6,15 @@ import { ItemImage } from '../components/ItemImage'
 import { SuggestionInput } from '../components/SuggestionInput'
 import { db, saveItem } from '../db'
 import { navigate } from '../hooks/useRoute'
-import type { EditorDraftRecord, ImageRecord, ItemDraft, ItemRecord, PurchaseMethod } from '../types'
+import type { EditorDraftRecord, ImageRecord, ItemDraft, ItemRecord, MeasurementKey, PurchaseMethod } from '../types'
 import { PURCHASE_METHODS } from '../types'
 import { parseOptionalPrice, uniqueSuggestions } from '../utils/format'
 import { prepareImage } from '../utils/images'
 import { parseMaterials } from '../utils/materials'
+import { emptyMeasurementDraft, MEASUREMENT_LABELS, measurementKeysForCategory, parseMeasurements, toMeasurementDraft } from '../utils/measurements'
 
 const blankDraft: ItemDraft = {
-  name: '', brand: '', categoryId: null, size: '', color: '', materials: [], originalPrice: '', purchasePrice: '', purchaseDate: '', purchaseMethod: '', purchaseSource: '', notes: '', isFavorite: false,
+  name: '', brand: '', categoryId: null, size: '', color: '', materials: [], measurements: emptyMeasurementDraft(), originalPrice: '', purchasePrice: '', purchaseDate: '', purchaseMethod: '', purchaseSource: '', notes: '', isFavorite: false,
 }
 
 export function ItemEditorScreen({ id, mode = 'owned' }: { id?: string; mode?: 'owned' | 'wanted' | 'acquire' }) {
@@ -47,6 +48,7 @@ export function ItemEditorScreen({ id, mode = 'owned' }: { id?: string; mode?: '
       size: existing.size,
       color: existing.color,
       materials: (existing.materials ?? []).map((material) => ({ ...material, percentage: material.percentage?.toString() ?? '' })),
+      measurements: toMeasurementDraft(existing.measurements),
       originalPrice: existing.originalPrice?.toString() ?? '',
       purchasePrice: existing.purchasePrice?.toString() ?? '',
       purchaseDate: existing.purchaseDate ?? '',
@@ -110,7 +112,7 @@ export function ItemEditorScreen({ id, mode = 'owned' }: { id?: string; mode?: '
   const resumeDraft = () => {
     if (!pendingDraft) return
     setItemId(pendingDraft.itemId)
-    setDraft({ ...pendingDraft.draft, materials: pendingDraft.draft.materials ?? [] })
+    setDraft({ ...pendingDraft.draft, materials: pendingDraft.draft.materials ?? [], measurements: pendingDraft.draft.measurements ?? emptyMeasurementDraft() })
     setImages(pendingDraft.images)
     setDirty(true)
     setPendingDraft(null)
@@ -171,6 +173,11 @@ export function ItemEditorScreen({ id, mode = 'owned' }: { id?: string; mode?: '
     update('materials', draft.materials.filter((material) => material.id !== id))
   }
 
+  const measurementKeys = measurementKeysForCategory(draft.categoryId)
+  const updateMeasurement = (key: MeasurementKey, value: string) => {
+    update('measurements', { ...draft.measurements, [key]: value })
+  }
+
   const submit = async () => {
     const name = draft.name.trim()
     if (!name) {
@@ -182,6 +189,7 @@ export function ItemEditorScreen({ id, mode = 'owned' }: { id?: string; mode?: '
     setError('')
     try {
       const materials = parseMaterials(draft.materials)
+      const measurements = parseMeasurements(draft.measurements)
       const now = new Date()
       const item: ItemRecord = {
         id: itemId,
@@ -191,6 +199,7 @@ export function ItemEditorScreen({ id, mode = 'owned' }: { id?: string; mode?: '
         size: draft.size.trim(),
         color: draft.color.trim(),
         materials,
+        measurements,
         originalPrice: parseOptionalPrice(draft.originalPrice),
         purchasePrice: isWanted ? null : parseOptionalPrice(draft.purchasePrice),
         purchaseDate: isWanted ? null : draft.purchaseDate || null,
@@ -203,7 +212,7 @@ export function ItemEditorScreen({ id, mode = 'owned' }: { id?: string; mode?: '
         createdAt: existing?.createdAt ?? now,
         updatedAt: now,
         deletedAt: existing?.deletedAt ?? null,
-        schemaVersion: 3,
+        schemaVersion: 4,
       }
       await saveItem(item, images.map((image, sortOrder) => ({ ...image, itemId, sortOrder })))
       await db.drafts.delete(draftKey)
@@ -296,6 +305,14 @@ export function ItemEditorScreen({ id, mode = 'owned' }: { id?: string; mode?: '
             <p className="field-help">素材名だけでも保存できます。混率を入力する場合は、すべての素材に入力し、合計を100%にしてください。</p>
           </div>
         </details>
+
+        {measurementKeys.length > 0 && <details className="editor-section disclosure">
+          <summary><span><small>MEASUREMENTS</small>採寸</span></summary>
+          <div className="form-stack measurement-editor">
+            <p className="field-help">平置きで測った数値をcm単位で入力できます。必要な項目だけで構いません。</p>
+            <div className="measurement-grid">{measurementKeys.map((key) => <label key={key}><span>{MEASUREMENT_LABELS[key]}（cm）</span><input inputMode="decimal" value={draft.measurements[key]} onChange={(event) => updateMeasurement(key, event.target.value.replace(/[^0-9.,]/g, ''))} placeholder="未入力" /></label>)}</div>
+          </div>
+        </details>}
 
         <details className="editor-section disclosure">
           <summary><span><small>NOTES</small>その他</span></summary>

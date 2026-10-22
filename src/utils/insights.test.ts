@@ -5,7 +5,7 @@ import { filterItemsByYear, groupInsightRows, purchaseYears, summarizePurchases 
 function item(id: string, purchaseDate: string | null, purchasePrice: number | null, originalPrice: number | null, brand = 'TEST'): ItemRecord {
   const now = new Date('2026-10-22T00:00:00.000Z')
   return {
-    id, name: id, brand, categoryId: 'tops', size: '', color: '', materials: [], originalPrice, purchasePrice, purchaseDate,
+    id, name: id, brand, categoryId: 'tops', size: '', color: '', materials: [], measurements: {}, originalPrice, purchasePrice, purchaseDate,
     purchaseMethod: '実店舗', purchaseSource: '店舗', notes: '', isFavorite: false, ownershipStatus: 'owned', coverImageId: null,
     createdAt: now, updatedAt: now, deletedAt: null, schemaVersion: 3,
   }

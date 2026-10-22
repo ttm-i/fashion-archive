@@ -1,7 +1,7 @@
 import Dexie, { type EntityTable } from 'dexie'
 import type { CategoryRecord, EditorDraftRecord, ImageRecord, ItemRecord, SettingRecord } from './types'
 
-export const DATABASE_SCHEMA_VERSION = 4
+export const DATABASE_SCHEMA_VERSION = 5
 
 const DEFAULT_CATEGORIES: CategoryRecord[] = [
   { id: 'outerwear', name: 'アウター', sortOrder: 0, isActive: true },
@@ -57,6 +57,18 @@ class FashionArchiveDatabase extends Dexie {
       await transaction.table('items').toCollection().modify((item) => {
         if (!Array.isArray(item.materials)) item.materials = []
         item.schemaVersion = 3
+      })
+    })
+    this.version(5).stores({
+      items: 'id, name, brand, categoryId, purchaseDate, purchaseMethod, ownershipStatus, isFavorite, createdAt, updatedAt, deletedAt',
+      images: 'id, itemId, [itemId+sortOrder], sortOrder',
+      categories: 'id, sortOrder, isActive',
+      settings: 'key',
+      drafts: 'key, itemId, updatedAt',
+    }).upgrade(async (transaction) => {
+      await transaction.table('items').toCollection().modify((item) => {
+        if (!item.measurements || typeof item.measurements !== 'object') item.measurements = {}
+        item.schemaVersion = 4
       })
     })
   }

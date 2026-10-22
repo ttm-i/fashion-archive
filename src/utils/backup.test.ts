@@ -16,6 +16,7 @@ function makeItem(): ItemRecord {
     size: 'M',
     color: 'ブラック',
     materials: [{ id: 'material-wool', name: 'ウール', percentage: 100 }],
+    measurements: { shoulderWidth: 47.5, bodyLength: 72 },
     originalPrice: 45000,
     purchasePrice: 32000,
     purchaseDate: '2026-10-01',
@@ -71,16 +72,16 @@ describe('complete backup', () => {
     await db.items.update(itemId, { name: '変更後' })
     await db.images.clear()
     await db.drafts.put({
-      key: 'new', itemId: 'stale-draft', draft: { name: '古い下書き', brand: '', categoryId: null, size: '', color: '', materials: [], originalPrice: '', purchasePrice: '', purchaseDate: '', purchaseMethod: '', purchaseSource: '', notes: '', isFavorite: false }, images: [], updatedAt: new Date(),
+      key: 'new', itemId: 'stale-draft', draft: { name: '古い下書き', brand: '', categoryId: null, size: '', color: '', materials: [], measurements: { shoulderWidth: '', chestWidth: '', bodyLength: '', sleeveLength: '', waist: '', rise: '', inseam: '', thighWidth: '', hemWidth: '' }, originalPrice: '', purchasePrice: '', purchaseDate: '', purchaseMethod: '', purchaseSource: '', notes: '', isFavorite: false }, images: [], updatedAt: new Date(),
     })
     await restoreBackup(file)
 
-    expect(await db.items.get(itemId)).toMatchObject({ name: 'バックアップ用コート', coverImageId: imageId, ownershipStatus: 'owned', materials: [{ name: 'ウール', percentage: 100 }] })
+    expect(await db.items.get(itemId)).toMatchObject({ name: 'バックアップ用コート', coverImageId: imageId, ownershipStatus: 'owned', materials: [{ name: 'ウール', percentage: 100 }], measurements: { shoulderWidth: 47.5, bodyLength: 72 } })
     const restoredImage = await db.images.get(imageId)
     expect(restoredImage?.imageBlob.size).toBe(new Blob(['full-image']).size)
     expect(restoredImage?.thumbnailBlob.size).toBe(new Blob(['thumbnail']).size)
     expect(await db.drafts.count()).toBe(0)
-    expect((await db.settings.get('schemaVersion'))?.value).toBe(4)
+    expect((await db.settings.get('schemaVersion'))?.value).toBe(5)
   })
 
   it('rejects a file that is not a Fashion Archive backup', async () => {

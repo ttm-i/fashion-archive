@@ -8,7 +8,7 @@ import { InsightsScreen } from './InsightsScreen'
 function item(index: number): ItemRecord {
   const now = new Date('2026-10-22T00:00:00.000Z')
   return {
-    id: `item-${index}`, name: `アイテム${index}`, brand: `ブランド${index}`, categoryId: 'tops', size: '', color: '', materials: [],
+    id: `item-${index}`, name: `アイテム${index}`, brand: `ブランド${index}`, categoryId: 'tops', size: '', color: '', materials: [], measurements: {},
     originalPrice: 20000, purchasePrice: 20000 - index * 1000, purchaseDate: '2026-10-01', purchaseMethod: '実店舗', purchaseSource: '',
     notes: '', isFavorite: false, ownershipStatus: 'owned', coverImageId: null, createdAt: now, updatedAt: now, deletedAt: null, schemaVersion: 3,
   }
