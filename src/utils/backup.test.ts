@@ -46,6 +46,8 @@ function makeImage(): ImageRecord {
     width: 1200,
     height: 1600,
     byteSize: imageBlob.size,
+    focusX: 68,
+    focusY: 24,
     createdAt: new Date('2026-10-21T00:00:00.000Z'),
   }
 }
@@ -80,8 +82,9 @@ describe('complete backup', () => {
     const restoredImage = await db.images.get(imageId)
     expect(restoredImage?.imageBlob.size).toBe(new Blob(['full-image']).size)
     expect(restoredImage?.thumbnailBlob.size).toBe(new Blob(['thumbnail']).size)
+    expect(restoredImage).toMatchObject({ focusX: 68, focusY: 24 })
     expect(await db.drafts.count()).toBe(0)
-    expect((await db.settings.get('schemaVersion'))?.value).toBe(6)
+    expect((await db.settings.get('schemaVersion'))?.value).toBe(7)
   })
 
   it('rejects a file that is not a Fashion Archive backup', async () => {

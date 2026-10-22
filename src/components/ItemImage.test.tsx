@@ -27,4 +27,12 @@ describe('ItemImage', () => {
     expect(view.getByRole('img').getAttribute('src')).toBe('blob:test-2')
     expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:test-1')
   })
+
+  it('applies a cover crop position without changing the image source', () => {
+    const blob = new Blob(['photo'], { type: 'image/webp' })
+    const view = render(<ItemImage blob={blob} alt="写真" fit="cover" position={{ x: 72, y: 31 }} />)
+    const image = view.getByRole('img') as HTMLImageElement
+    expect(image.style.objectFit).toBe('cover')
+    expect(image.style.objectPosition).toBe('72% 31%')
+  })
 })

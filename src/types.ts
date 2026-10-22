@@ -59,6 +59,8 @@ export interface ImageRecord {
   width: number
   height: number
   byteSize: number
+  focusX: number
+  focusY: number
   createdAt: Date
 }
 

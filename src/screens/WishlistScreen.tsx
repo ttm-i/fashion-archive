@@ -57,7 +57,7 @@ function WishlistCard({ item, image, navigationIds }: { item: ItemRecord; image?
   }
   return (
     <article className="item-card wishlist-card" role="button" tabIndex={0} onClick={openDetail} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openDetail() } }}>
-      <div className="item-card__photo"><ItemImage blob={image?.thumbnailBlob} alt={item.name} /><span className="wishlist-badge">WANTED</span></div>
+      <div className="item-card__photo"><ItemImage blob={image?.thumbnailBlob} alt={item.name} fit="cover" position={image ? { x: image.focusX, y: image.focusY } : undefined} /><span className="wishlist-badge">WANTED</span></div>
       {item.brand && <span className="item-card__brand">{item.brand}</span>}
       <div className="item-card__line"><h2>{item.name}</h2>{item.originalPrice !== null && <strong>{formatYen(item.originalPrice)}</strong>}</div>
     </article>

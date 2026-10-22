@@ -1,8 +1,9 @@
 import Dexie, { type EntityTable } from 'dexie'
 import type { CategoryRecord, EditorDraftRecord, ImageRecord, ItemRecord, SettingRecord } from './types'
 import { sanitizeMeasurementsForCategory } from './utils/measurements'
+import { normalizeFocus, normalizeImageFocus } from './utils/imageFocus'
 
-export const DATABASE_SCHEMA_VERSION = 6
+export const DATABASE_SCHEMA_VERSION = 7
 
 const DEFAULT_CATEGORIES: CategoryRecord[] = [
   { id: 'outerwear', name: 'アウター', sortOrder: 0, isActive: true },
@@ -84,6 +85,18 @@ class FashionArchiveDatabase extends Dexie {
         item.schemaVersion = 5
       })
     })
+    this.version(7).stores({
+      items: 'id, name, brand, categoryId, purchaseDate, purchaseMethod, ownershipStatus, isFavorite, createdAt, updatedAt, deletedAt',
+      images: 'id, itemId, [itemId+sortOrder], sortOrder',
+      categories: 'id, sortOrder, isActive',
+      settings: 'key',
+      drafts: 'key, itemId, updatedAt',
+    }).upgrade(async (transaction) => {
+      await transaction.table('images').toCollection().modify((image) => {
+        image.focusX = normalizeFocus(image.focusX)
+        image.focusY = normalizeFocus(image.focusY)
+      })
+    })
   }
 }
 
@@ -105,18 +118,19 @@ export async function markDataChanged() {
 
 export async function saveItem(item: ItemRecord, images: ImageRecord[]) {
   await db.transaction('rw', db.items, db.images, async () => {
+    const normalizedImages = images.map(normalizeImageFocus)
     const oldImages = await db.images.where('itemId').equals(item.id).toArray()
     const oldImageMap = new Map(oldImages.map((image) => [image.id, image]))
-    const nextIds = new Set(images.map((image) => image.id))
+    const nextIds = new Set(normalizedImages.map((image) => image.id))
     const removedIds = oldImages.filter((image) => !nextIds.has(image.id)).map((image) => image.id)
     if (removedIds.length) await db.images.bulkDelete(removedIds)
     await db.items.put(item)
-    const addedImages = images.filter((image) => !oldImageMap.has(image.id))
+    const addedImages = normalizedImages.filter((image) => !oldImageMap.has(image.id))
     if (addedImages.length) await db.images.bulkAdd(addedImages)
-    for (const image of images) {
+    for (const image of normalizedImages) {
       const oldImage = oldImageMap.get(image.id)
-      if (oldImage && (oldImage.sortOrder !== image.sortOrder || oldImage.itemId !== image.itemId)) {
-        await db.images.update(image.id, { itemId: image.itemId, sortOrder: image.sortOrder })
+      if (oldImage && (oldImage.sortOrder !== image.sortOrder || oldImage.itemId !== image.itemId || normalizeFocus(oldImage.focusX) !== image.focusX || normalizeFocus(oldImage.focusY) !== image.focusY)) {
+        await db.images.update(image.id, { itemId: image.itemId, sortOrder: image.sortOrder, focusX: image.focusX, focusY: image.focusY })
       }
     }
   })

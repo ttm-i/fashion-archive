@@ -178,6 +178,20 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .photo-order svg { width: 15px; }
 .camera-button { position: relative; min-height: 46px; margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; overflow: hidden; border: 1px solid var(--line); color: var(--muted); font-size: 12px; }
 .camera-button svg { width: 18px; }
+.focus-adjust-button { width: 100%; min-height: 46px; margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-size: 12px; font-weight: 700; }
+.focus-adjust-button svg { width: 18px; color: var(--accent); }
+.focus-editor-backdrop { z-index: 260; }
+.focus-editor-sheet > header > div { display: grid; gap: 4px; }
+.focus-editor-sheet > header span { color: var(--accent); font-size: 9px; font-weight: 700; letter-spacing: .16em; }
+.focus-editor-sheet > p { margin: 10px 0 14px; color: var(--muted); font-size: 12px; line-height: 1.6; }
+.focus-preview { position: relative; width: min(78vw, 340px); aspect-ratio: 1; margin: 0 auto; overflow: hidden; background: var(--soft); touch-action: none; user-select: none; }
+.focus-preview > img, .focus-preview > .image-placeholder { width: 100%; height: 100%; pointer-events: none; }
+.focus-preview > span { position: absolute; left: 50%; bottom: 10px; min-height: 30px; padding: 0 10px; transform: translateX(-50%); display: flex; align-items: center; gap: 5px; border-radius: 15px; background: rgba(23,22,20,.76); color: #fff; white-space: nowrap; font-size: 10px; pointer-events: none; }
+.focus-preview > span svg { width: 14px; }
+.focus-controls { margin-top: 14px; display: grid; gap: 10px; }
+.focus-controls label { display: grid; grid-template-columns: 34px 1fr; align-items: center; gap: 10px; color: var(--muted); font-size: 11px; }
+.focus-controls input { width: 100%; accent-color: var(--accent); }
+.focus-reset { min-height: 42px; margin: 7px auto -7px; padding: 0 12px; display: block; border: 0; background: transparent; color: var(--accent); font-size: 11px; font-weight: 700; }
 .disclosure { padding: 0; }
 .disclosure summary { min-height: 70px; padding: 16px; display: flex; align-items: center; list-style: none; font: 600 18px/1.2 Georgia, serif; }
 .disclosure summary::-webkit-details-marker { display: none; }

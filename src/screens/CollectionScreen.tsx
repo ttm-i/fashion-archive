@@ -149,7 +149,7 @@ function ItemCard({ item, image, showPrice, navigationIds }: { item: ItemRecord;
   return (
     <article className="item-card" role="button" tabIndex={0} onClick={openDetail} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openDetail() } }}>
       <div className="item-card__photo">
-        <ItemImage blob={image?.thumbnailBlob} alt={item.name} />
+        <ItemImage blob={image?.thumbnailBlob} alt={item.name} fit="cover" position={image ? { x: image.focusX, y: image.focusY } : undefined} />
         <button className={item.isFavorite ? 'favorite-button active' : 'favorite-button'} type="button" onClick={toggleFavorite} aria-label={item.isFavorite ? 'お気に入りから外す' : 'お気に入りに追加'}>
           <Heart aria-hidden="true" fill={item.isFavorite ? 'currentColor' : 'none'} />
         </button>

@@ -36,7 +36,7 @@ describe('database operations', () => {
 
   it('seeds default categories', async () => {
     expect(await db.categories.count()).toBe(7)
-    expect((await db.settings.get('schemaVersion'))?.value).toBe(6)
+    expect((await db.settings.get('schemaVersion'))?.value).toBe(7)
   })
 
   it('saves, trashes, restores and permanently empties items', async () => {
@@ -64,7 +64,7 @@ describe('database operations', () => {
         id: 'draft-image', itemId: 'draft-item', sortOrder: 0,
         imageBlob: new Blob(['draft-full'], { type: 'image/webp' }),
         thumbnailBlob: new Blob(['draft-thumb'], { type: 'image/webp' }),
-        mimeType: 'image/webp', width: 1200, height: 1600, byteSize: 10, createdAt: new Date(),
+        mimeType: 'image/webp', width: 1200, height: 1600, byteSize: 10, focusX: 50, focusY: 50, createdAt: new Date(),
       }],
       updatedAt: new Date(),
     }
@@ -86,6 +86,8 @@ describe('database operations', () => {
       width: 228,
       height: 228,
       byteSize: 8,
+      focusX: 50,
+      focusY: 50,
       createdAt: new Date(),
     })
     await saveItem(item, [makeImage('first', 0), makeImage('second', 1)])
@@ -93,7 +95,7 @@ describe('database operations', () => {
     const bulkAdd = vi.spyOn(db.images, 'bulkAdd')
 
     await saveItem({ ...item, name: '編集後' }, [
-      { ...stored[1], sortOrder: 0 },
+      { ...stored[1], sortOrder: 0, focusX: 72, focusY: 31 },
       { ...stored[0], sortOrder: 1 },
     ])
 
@@ -101,6 +103,7 @@ describe('database operations', () => {
     const reordered = await db.images.where('itemId').equals(item.id).sortBy('sortOrder')
     expect(reordered.map((image) => image.id)).toEqual(['second', 'first'])
     expect(await reordered[0].imageBlob.text()).toBe('full-second')
+    expect(reordered[0]).toMatchObject({ focusX: 72, focusY: 31 })
   })
 
   it('upgrades a version 1 database without losing existing items', async () => {
@@ -125,7 +128,7 @@ describe('database operations', () => {
     await initializeDatabase()
 
     expect(await db.items.count()).toBe(1)
-    expect((await db.settings.get('schemaVersion'))?.value).toBe(6)
+    expect((await db.settings.get('schemaVersion'))?.value).toBe(7)
     expect((await db.items.toArray())[0]?.ownershipStatus).toBe('owned')
     expect((await db.items.toArray())[0]?.materials).toEqual([])
     expect((await db.items.toArray())[0]?.measurements).toEqual({})
@@ -150,5 +153,29 @@ describe('database operations', () => {
     await initializeDatabase()
 
     expect((await db.items.toArray())[0]?.measurements).toEqual({ waist: 82 })
+  })
+
+  it('adds a centered list position to photos saved by an older version', async () => {
+    await db.delete()
+    const legacy = new Dexie('fashion-archive')
+    legacy.version(6).stores({
+      items: 'id, name, brand, categoryId, purchaseDate, purchaseMethod, ownershipStatus, isFavorite, createdAt, updatedAt, deletedAt',
+      images: 'id, itemId, [itemId+sortOrder], sortOrder',
+      categories: 'id, sortOrder, isActive',
+      settings: 'key',
+      drafts: 'key, itemId, updatedAt',
+    })
+    await legacy.open()
+    await legacy.table('images').put({
+      id: 'legacy-image', itemId: 'legacy-item', sortOrder: 0,
+      imageBlob: new Blob(['full']), thumbnailBlob: new Blob(['thumb']), mimeType: 'image/webp',
+      width: 1200, height: 1600, byteSize: 4, createdAt: new Date(),
+    })
+    legacy.close()
+
+    await db.open()
+    await initializeDatabase()
+
+    expect(await db.images.get('legacy-image')).toMatchObject({ focusX: 50, focusY: 50 })
   })
 })

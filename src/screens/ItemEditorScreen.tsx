@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Camera, ChevronLeft, ChevronRight, Heart, ImagePlus, Plus, Star, Trash2 } from 'lucide-react'
+import { Camera, ChevronLeft, ChevronRight, Heart, ImagePlus, Move, Plus, Star, Trash2, X } from 'lucide-react'
 import { AppHeader } from '../components/AppHeader'
 import { ItemImage } from '../components/ItemImage'
 import { SuggestionInput } from '../components/SuggestionInput'
@@ -10,6 +10,7 @@ import type { EditorDraftRecord, ImageRecord, ItemDraft, ItemRecord, Measurement
 import { PURCHASE_METHODS } from '../types'
 import { parseOptionalPrice, uniqueSuggestions } from '../utils/format'
 import { prepareImage } from '../utils/images'
+import { normalizeFocus, normalizeImageFocus } from '../utils/imageFocus'
 import { parseMaterials } from '../utils/materials'
 import { emptyMeasurementDraft, MEASUREMENT_LABELS, measurementKeysForCategory, parseMeasurements, toMeasurementDraft } from '../utils/measurements'
 
@@ -38,6 +39,9 @@ export function ItemEditorScreen({ id, mode = 'owned' }: { id?: string; mode?: '
   const [error, setError] = useState('')
   const [draftChecked, setDraftChecked] = useState(false)
   const [pendingDraft, setPendingDraft] = useState<EditorDraftRecord | null>(null)
+  const [focusImageId, setFocusImageId] = useState<string | null>(null)
+  const [focusDraft, setFocusDraft] = useState({ x: 50, y: 50 })
+  const focusDrag = useRef<{ pointerX: number; pointerY: number; focusX: number; focusY: number } | null>(null)
 
   useEffect(() => {
     if (!id || !existing || !editorData || loaded) return
@@ -57,7 +61,7 @@ export function ItemEditorScreen({ id, mode = 'owned' }: { id?: string; mode?: '
       notes: existing.notes,
       isFavorite: existing.isFavorite,
     })
-    setImages(editorData.images)
+    setImages(editorData.images.map(normalizeImageFocus))
     setLoaded(true)
   }, [id, existing, editorData, loaded])
 
@@ -113,7 +117,7 @@ export function ItemEditorScreen({ id, mode = 'owned' }: { id?: string; mode?: '
     if (!pendingDraft) return
     setItemId(pendingDraft.itemId)
     setDraft({ ...pendingDraft.draft, materials: pendingDraft.draft.materials ?? [], measurements: pendingDraft.draft.measurements ?? emptyMeasurementDraft() })
-    setImages(pendingDraft.images)
+    setImages(pendingDraft.images.map(normalizeImageFocus))
     setDirty(true)
     setPendingDraft(null)
   }
@@ -159,6 +163,29 @@ export function ItemEditorScreen({ id, mode = 'owned' }: { id?: string; mode?: '
   const removeImage = (index: number) => {
     setImages((current) => current.filter((_, currentIndex) => currentIndex !== index).map((image, sortOrder) => ({ ...image, sortOrder })))
     setDirty(true)
+  }
+
+  const focusImage = images.find((image) => image.id === focusImageId)
+  const openFocusEditor = () => {
+    const image = images[0]
+    if (!image) return
+    setFocusDraft({ x: normalizeFocus(image.focusX), y: normalizeFocus(image.focusY) })
+    setFocusImageId(image.id)
+  }
+
+  const moveFocus = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!focusDrag.current) return
+    const bounds = event.currentTarget.getBoundingClientRect()
+    const x = focusDrag.current.focusX - ((event.clientX - focusDrag.current.pointerX) / bounds.width) * 100
+    const y = focusDrag.current.focusY - ((event.clientY - focusDrag.current.pointerY) / bounds.height) * 100
+    setFocusDraft({ x: normalizeFocus(x), y: normalizeFocus(y) })
+  }
+
+  const applyFocus = () => {
+    if (!focusImageId) return
+    setImages((current) => current.map((image) => image.id === focusImageId ? { ...image, focusX: focusDraft.x, focusY: focusDraft.y } : image))
+    setDirty(true)
+    setFocusImageId(null)
   }
 
   const addMaterial = () => {
@@ -260,6 +287,7 @@ export function ItemEditorScreen({ id, mode = 'owned' }: { id?: string; mode?: '
               </label>
             ))}
           </div>
+          {images.length > 0 && <button className="focus-adjust-button" type="button" onClick={openFocusEditor}><Move aria-hidden="true" />一覧写真の表示位置を調整</button>}
           <label className="camera-button"><Camera aria-hidden="true" />{processing ? '写真を処理しています…' : `写真を追加（あと${3 - images.length}枚・複数選択可）`}<input type="file" accept="image/*" multiple onChange={(event) => { addImages(event.target.files); event.target.value = '' }} disabled={processing || images.length >= 3} /></label>
         </section>
 
@@ -322,6 +350,26 @@ export function ItemEditorScreen({ id, mode = 'owned' }: { id?: string; mode?: '
         {error && <p className="form-error" role="alert">{error}</p>}
         <div className="editor-save"><button className="primary-button block" type="submit" disabled={saving || processing}>{saving ? '保存しています…' : isAcquire ? 'コレクションへ移す' : '保存する'}</button></div>
       </form>
+      {focusImage && <div className="sheet-backdrop focus-editor-backdrop" role="presentation" onPointerDown={(event) => event.target === event.currentTarget && setFocusImageId(null)}>
+        <section className="bottom-sheet focus-editor-sheet" role="dialog" aria-modal="true" aria-labelledby="focus-editor-title">
+          <div className="sheet-handle" />
+          <header><div><span>THUMBNAIL</span><h2 id="focus-editor-title">一覧写真の表示位置</h2></div><button className="icon-button" type="button" onClick={() => setFocusImageId(null)} aria-label="閉じる"><X aria-hidden="true" /></button></header>
+          <p>写真を指で動かし、一覧に見せたい範囲を正方形の中に合わせてください。元の写真は変更されません。</p>
+          <div className="focus-preview" onPointerDown={(event) => {
+            focusDrag.current = { pointerX: event.clientX, pointerY: event.clientY, focusX: focusDraft.x, focusY: focusDraft.y }
+            event.currentTarget.setPointerCapture(event.pointerId)
+          }} onPointerMove={moveFocus} onPointerUp={() => { focusDrag.current = null }} onPointerCancel={() => { focusDrag.current = null }}>
+            <ItemImage blob={focusImage.thumbnailBlob} alt="一覧写真の表示位置プレビュー" fit="cover" position={focusDraft} />
+            <span><Move aria-hidden="true" />指で動かして調整</span>
+          </div>
+          <div className="focus-controls">
+            <label><span>左右</span><input type="range" min="0" max="100" value={focusDraft.x} onChange={(event) => setFocusDraft((current) => ({ ...current, x: Number(event.target.value) }))} /></label>
+            <label><span>上下</span><input type="range" min="0" max="100" value={focusDraft.y} onChange={(event) => setFocusDraft((current) => ({ ...current, y: Number(event.target.value) }))} /></label>
+          </div>
+          <button className="focus-reset" type="button" onClick={() => setFocusDraft({ x: 50, y: 50 })}>中央に戻す</button>
+          <div className="sheet-actions"><button className="secondary-button" type="button" onClick={() => setFocusImageId(null)}>キャンセル</button><button className="primary-button" type="button" onClick={applyFocus}>この位置に決定</button></div>
+        </section>
+      </div>}
       {pendingDraft && <div className="sheet-backdrop draft-recovery"><section className="bottom-sheet" role="dialog" aria-modal="true" aria-labelledby="draft-title"><div className="sheet-handle" /><span className="draft-recovery__eyebrow">AUTO SAVED</span><h2 id="draft-title">入力途中の内容があります</h2><p>前回入力していた内容と写真を再開できます。</p><div className="sheet-actions"><button className="secondary-button" type="button" onClick={discardDraft}>破棄する</button><button className="primary-button" type="button" onClick={resumeDraft}>入力を再開</button></div></section></div>}
     </main>
   )

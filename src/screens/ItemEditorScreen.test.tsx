@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { db, initializeDatabase, saveItem } from '../db'
-import type { ItemRecord } from '../types'
+import type { ImageRecord, ItemRecord } from '../types'
 import { ItemEditorScreen } from './ItemEditorScreen'
 
 describe('item editor draft recovery', () => {
@@ -102,5 +102,30 @@ describe('item editor draft recovery', () => {
       const saved = await db.items.where('name').equals('カテゴリー変更テスト').first()
       expect(saved?.measurements).toEqual({ waist: 82 })
     })
+  })
+
+  it('saves the adjusted list-photo position without replacing the photo blob', async () => {
+    const now = new Date('2026-10-22T00:00:00.000Z')
+    const item: ItemRecord = {
+      id: 'focus-item', name: '表示位置テスト', brand: '', categoryId: null, size: '', color: '', materials: [], measurements: {},
+      originalPrice: null, purchasePrice: null, purchaseDate: null, purchaseMethod: null, purchaseSource: '', notes: '',
+      isFavorite: false, ownershipStatus: 'owned', coverImageId: 'focus-image', createdAt: now, updatedAt: now, deletedAt: null, schemaVersion: 5,
+    }
+    const fullBlob = new Blob(['unchanged-photo'], { type: 'image/webp' })
+    const image: ImageRecord = {
+      id: 'focus-image', itemId: item.id, sortOrder: 0, imageBlob: fullBlob, thumbnailBlob: new Blob(['thumb'], { type: 'image/webp' }),
+      mimeType: 'image/webp', width: 1200, height: 1600, byteSize: fullBlob.size, focusX: 50, focusY: 50, createdAt: now,
+    }
+    await saveItem(item, [image])
+    render(<ItemEditorScreen id={item.id} />)
+
+    fireEvent.click(await screen.findByRole('button', { name: '一覧写真の表示位置を調整' }))
+    fireEvent.change(screen.getByLabelText('左右'), { target: { value: '73' } })
+    fireEvent.change(screen.getByLabelText('上下'), { target: { value: '28' } })
+    fireEvent.click(screen.getByRole('button', { name: 'この位置に決定' }))
+    fireEvent.click(screen.getByRole('button', { name: '保存する' }))
+
+    await waitFor(async () => expect(await db.images.get(image.id)).toMatchObject({ focusX: 73, focusY: 28 }))
+    expect(await (await db.images.get(image.id))?.imageBlob.text()).toBe('unchanged-photo')
   })
 })

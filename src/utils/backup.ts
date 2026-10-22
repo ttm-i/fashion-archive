@@ -3,6 +3,7 @@ import { DATABASE_SCHEMA_VERSION, db, updateBackupTimestamp } from '../db'
 import type { BackupManifest, CategoryRecord, ImageRecord, ItemMeasurements, ItemRecord, MaterialEntry, OwnershipStatus, SettingRecord } from '../types'
 import { formatMaterials } from './materials'
 import { formatMeasurements, sanitizeMeasurementsForCategory } from './measurements'
+import { normalizeFocus } from './imageFocus'
 
 interface SerializedImage {
   id: string
@@ -12,6 +13,8 @@ interface SerializedImage {
   width: number
   height: number
   byteSize: number
+  focusX?: number
+  focusY?: number
   createdAt: string
   imageFile: string
   thumbnailFile: string
@@ -46,7 +49,7 @@ export async function createBackup() {
   const manifest: BackupManifest = {
     app: 'Fashion Archive',
     backupVersion: 1,
-    schemaVersion: 4,
+    schemaVersion: 5,
     createdAt: new Date().toISOString(),
     appVersion: __APP_VERSION__,
     itemCount: items.length,
@@ -67,6 +70,8 @@ export async function createBackup() {
     width: image.width,
     height: image.height,
     byteSize: image.byteSize,
+    focusX: normalizeFocus(image.focusX),
+    focusY: normalizeFocus(image.focusY),
     createdAt: image.createdAt.toISOString(),
     imageFile: `images/${image.id}.webp`,
     thumbnailFile: `thumbnails/${image.id}.webp`,
@@ -122,7 +127,7 @@ export async function inspectBackup(file: File): Promise<BackupContents> {
     if (manifest.app !== 'Fashion Archive' || manifest.backupVersion !== 1) {
       throw new Error('Fashion Archiveの対応バックアップではありません。')
     }
-    if (manifest.schemaVersion > 4) throw new Error('このバックアップには、より新しいアプリが必要です。')
+    if (manifest.schemaVersion > 5) throw new Error('このバックアップには、より新しいアプリが必要です。')
     const [items, images, categories, settings] = await Promise.all([
       parseJsonEntry<SerializedItem[]>(entries, 'items.json'),
       parseJsonEntry<SerializedImage[]>(entries, 'images.json'),
@@ -160,6 +165,8 @@ export async function restoreBackup(file: File) {
         width: image.width,
         height: image.height,
         byteSize: image.byteSize,
+        focusX: normalizeFocus(image.focusX),
+        focusY: normalizeFocus(image.focusY),
         createdAt: new Date(image.createdAt),
         imageBlob,
         thumbnailBlob,

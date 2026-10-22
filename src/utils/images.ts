@@ -1,4 +1,5 @@
 import type { ImageRecord } from '../types'
+import { DEFAULT_IMAGE_FOCUS } from './imageFocus'
 
 const FULL_MAX = 2048
 const THUMB_MAX = 640
@@ -61,6 +62,8 @@ export async function prepareImage(file: File, itemId: string, sortOrder: number
       width: full.width,
       height: full.height,
       byteSize: full.blob.size,
+      focusX: DEFAULT_IMAGE_FOCUS,
+      focusY: DEFAULT_IMAGE_FOCUS,
       createdAt: new Date(),
     }
   } finally {
