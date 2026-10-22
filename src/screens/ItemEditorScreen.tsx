@@ -263,9 +263,9 @@ export function ItemEditorScreen({ id, mode = 'owned' }: { id?: string; mode?: '
 
   return (
     <main className="screen editor-screen">
-      <AppHeader title={isAcquire ? '購入済みにする' : isWanted ? (id ? 'ウィッシュリストを編集' : 'ウィッシュリストに追加') : (id ? 'アイテムを編集' : '新しいアイテム')} back={goBack} action={<button className="text-action" type="button" onClick={submit} disabled={saving || processing}>{isAcquire ? '登録' : '保存'}</button>} />
+      <AppHeader title={isAcquire ? '購入済みにする' : isWanted ? (id ? 'キープを編集' : 'キープに追加') : (id ? 'アイテムを編集' : '新しいアイテム')} back={goBack} action={<button className="text-action" type="button" onClick={submit} disabled={saving || processing}>{isAcquire ? '登録' : '保存'}</button>} />
       <form onSubmit={(event) => { event.preventDefault(); submit() }}>
-        <section className="editor-intro"><span>{isAcquire ? 'MOVE TO COLLECTION' : isWanted ? 'WISHLIST' : 'NEW RECORD'}</span><h1>{isAcquire ? '購入情報を追加' : isWanted ? (id ? '購入候補を編集' : '気になる一着を記録') : (id ? 'アイテムを編集' : '新しい一着を記録')}</h1><p>{isAcquire ? '保存すると、ウィッシュリストからコレクションへ移動します。' : '写真と名前だけでも保存できます。'}</p></section>
+        <section className="editor-intro"><span>{isAcquire ? 'MOVE TO COLLECTION' : isWanted ? 'KEEP' : 'NEW RECORD'}</span><h1>{isAcquire ? '購入情報を追加' : isWanted ? (id ? '購入候補を編集' : '気になる一着を記録') : (id ? 'アイテムを編集' : '新しい一着を記録')}</h1><p>{isAcquire ? '保存すると、キープからコレクションへ移動します。' : '写真と名前だけでも保存できます。'}</p></section>
 
         <section className="editor-section photo-editor">
           <div className="section-heading"><div><span>PHOTOS</span><h2>写真</h2></div><p>{images.length} / 3</p></div>
@@ -304,7 +304,7 @@ export function ItemEditorScreen({ id, mode = 'owned' }: { id?: string; mode?: '
         </section>
 
         {isWanted ? <details className="editor-section disclosure" open>
-          <summary><span><small>WISHLIST</small>購入候補</span></summary>
+          <summary><span><small>KEEP</small>購入候補</span></summary>
           <div className="form-stack">
             <label><span>想定価格</span><div className="money-input"><span>¥</span><input inputMode="numeric" value={draft.originalPrice} onChange={(event) => update('originalPrice', event.target.value.replace(/\D/g, ''))} placeholder="0" /></div></label>
             <SuggestionInput id="purchase-source" label="購入候補先" value={draft.purchaseSource} suggestions={sourceSuggestions} onChange={(value) => update('purchaseSource', value)} placeholder="例：公式オンラインストア" />

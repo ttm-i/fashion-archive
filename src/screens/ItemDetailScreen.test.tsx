@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { db, initializeDatabase, saveItem } from '../db'
 import type { ImageRecord, ItemRecord } from '../types'
@@ -30,7 +30,17 @@ describe('item detail navigation', () => {
     render(<ItemDetailScreen id="first" />)
     expect(await screen.findByText('最初のアイテム')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: '次のアイテム' }))
-    expect(window.location.hash).toBe('#/item/second')
+    expect(screen.getByText('最初のアイテム').closest('.detail-transition')?.classList.contains('exit-next')).toBe(true)
+    await waitFor(() => expect(window.location.hash).toBe('#/item/second'))
+  })
+
+  it('uses the opposite transition when moving to the previous item', async () => {
+    window.location.hash = '#/item/second'
+    render(<ItemDetailScreen id="second" />)
+    const heading = await screen.findByRole('heading', { name: '次のアイテム' })
+    fireEvent.click(screen.getByRole('button', { name: '前のアイテム' }))
+    expect(heading.closest('.detail-transition')?.classList.contains('exit-previous')).toBe(true)
+    await waitFor(() => expect(window.location.hash).toBe('#/item/first'))
   })
 
   it('offers a wanted item conversion into the collection', async () => {

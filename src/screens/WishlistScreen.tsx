@@ -25,28 +25,28 @@ export function WishlistScreen() {
 
   return (
     <main className="screen screen--with-nav wishlist-screen">
-      <AppHeader title="ウィッシュリスト" />
-      <section className="collection-heading wishlist-heading"><div><h1>ウィッシュリスト</h1><p>{filtered.length === items.length ? `${items.length} candidates` : `${filtered.length} / ${items.length} candidates`}</p></div></section>
+      <AppHeader title="キープ" />
+      <section className="collection-heading wishlist-heading"><div><h1>キープ</h1><p>{filtered.length === items.length ? `${items.length} candidates` : `${filtered.length} / ${items.length} candidates`}</p></div></section>
       <BackupReminder />
       <label className="search-field">
         <Search aria-hidden="true" />
-        <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="アイテム名、ブランドなど" aria-label="ウィッシュリストを検索" />
+        <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="アイテム名、ブランドなど" aria-label="キープを検索" />
         {query && <button type="button" onClick={() => setQuery('')} aria-label="検索をクリア"><X aria-hidden="true" /></button>}
       </label>
       <div className="wishlist-spacer" />
       {filtered.length === 0 ? (
         <section className="empty-state">
-          <span>WISHLIST</span>
+          <span>KEEP</span>
           <h2>{items.length === 0 ? '気になる一着を残しましょう' : '検索に合う候補がありません'}</h2>
           <p>{items.length === 0 ? '名前だけでも登録でき、購入後はコレクションへ移せます。' : '検索語を変更してください。'}</p>
-          {items.length === 0 && <button className="primary-button" type="button" onClick={() => navigate('new-wanted')}>ウィッシュリストに登録</button>}
+          {items.length === 0 && <button className="primary-button" type="button" onClick={() => navigate('new-wanted')}>キープに追加</button>}
         </section>
       ) : (
-        <section className="item-grid" aria-label="ウィッシュリスト一覧">
+        <section className="item-grid" aria-label="キープ一覧">
           {filtered.map((item) => <WishlistCard key={item.id} item={item} image={item.coverImageId ? imageMap.get(item.coverImageId) : undefined} navigationIds={navigationIds} />)}
         </section>
       )}
-      <button className="floating-add" type="button" onClick={() => navigate('new-wanted')} aria-label="ウィッシュリストに登録"><Plus aria-hidden="true" /></button>
+      <button className="floating-add" type="button" onClick={() => navigate('new-wanted')} aria-label="キープに追加"><Plus aria-hidden="true" /></button>
     </main>
   )
 }
@@ -59,7 +59,7 @@ function WishlistCard({ item, image, navigationIds }: { item: ItemRecord; image?
   }
   return (
     <article className="item-card wishlist-card" role="button" tabIndex={0} onClick={openDetail} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openDetail() } }}>
-      <div className="item-card__photo"><ItemImage blob={image?.thumbnailBlob} imageKey={image ? `${image.id}:thumbnail` : undefined} alt={item.name} fit="cover" position={position} /><span className="wishlist-badge">WANTED</span></div>
+      <div className="item-card__photo"><ItemImage blob={image?.thumbnailBlob} imageKey={image ? `${image.id}:thumbnail` : undefined} alt={item.name} fit="cover" position={position} /><span className="wishlist-badge">KEEP</span></div>
       {item.brand && <span className="item-card__brand">{item.brand}</span>}
       <div className="item-card__line"><h2>{item.name}</h2>{item.originalPrice !== null && <strong>{formatYen(item.originalPrice)}</strong>}</div>
     </article>
