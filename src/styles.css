@@ -242,10 +242,14 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .undo-bar button { min-height: 40px; padding: 0 14px; border: 0; background: var(--accent); color: #fff; }
 
 .insights-heading, .settings-heading { padding-bottom: 20px; }
+.insights-period { margin: 0 16px 12px; padding: 13px 14px; display: flex; align-items: end; justify-content: space-between; gap: 12px; background: var(--surface); border: 1px solid var(--line); }
+.insights-period label { min-width: 125px; display: grid; gap: 5px; color: var(--muted); font-size: 10px; }
+.insights-period select { min-height: 40px; padding: 7px 34px 7px 10px; border: 1px solid var(--line); border-radius: 0; background-color: var(--surface); color: var(--ink); font-size: 14px; }
+.insights-period p { max-width: 170px; margin: 0 0 4px; color: var(--muted); font-size: 9px; line-height: 1.45; text-align: right; }
 .stat-grid { padding: 0 16px 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .stat-grid article { min-width: 0; padding: 17px 14px; background: var(--surface); border: 1px solid var(--line); }
 .stat-grid article:nth-child(2) { background: var(--accent-soft); border-color: transparent; }
-.stat-grid article:nth-child(3) { grid-column: 1 / -1; }
+.stat-grid article:last-child { grid-column: 1 / -1; }
 .stat-grid span { color: var(--muted); font-size: 8px; letter-spacing: .15em; }
 .stat-grid strong { display: block; margin-top: 8px; overflow-wrap: anywhere; font: 600 24px/1.15 Georgia, serif; }
 .stat-grid p { margin: 4px 0 0; color: var(--muted); font-size: 10px; }
