@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import Dexie from 'dexie'
-import { db, emptyTrash, initializeDatabase, moveItemToTrash, restoreItem, saveItem } from './db'
+import { DATABASE_SCHEMA_VERSION, db, emptyTrash, initializeDatabase, moveItemToTrash, restoreItem, saveItem } from './db'
 import type { EditorDraftRecord, ImageRecord, ItemRecord } from './types'
 
 const makeItem = (): ItemRecord => ({
@@ -36,7 +36,7 @@ describe('database operations', () => {
 
   it('seeds default categories', async () => {
     expect(await db.categories.count()).toBe(7)
-    expect((await db.settings.get('schemaVersion'))?.value).toBe(8)
+    expect((await db.settings.get('schemaVersion'))?.value).toBe(DATABASE_SCHEMA_VERSION)
   })
 
   it('saves, trashes, restores and permanently empties items', async () => {
@@ -137,7 +137,7 @@ describe('database operations', () => {
     await initializeDatabase()
 
     expect(await db.items.count()).toBe(1)
-    expect((await db.settings.get('schemaVersion'))?.value).toBe(8)
+    expect((await db.settings.get('schemaVersion'))?.value).toBe(DATABASE_SCHEMA_VERSION)
     expect((await db.items.toArray())[0]?.ownershipStatus).toBe('owned')
     expect((await db.items.toArray())[0]?.materials).toEqual([])
     expect((await db.items.toArray())[0]?.measurements).toEqual({})

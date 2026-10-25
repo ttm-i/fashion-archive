@@ -1,10 +1,10 @@
 import Dexie, { type EntityTable } from 'dexie'
 import type { CategoryRecord, EditorDraftRecord, ImageRecord, ItemRecord, SettingRecord } from './types'
-import { sanitizeMeasurementsForCategory } from './utils/measurements'
+import { DEFAULT_MEASUREMENT_DEFINITIONS, MEASUREMENT_DEFINITIONS_SETTING_KEY, sanitizeMeasurementsForCategory } from './utils/measurements'
 import { normalizeFocus, normalizeImageFocus } from './utils/imageFocus'
 import { createImageLayout } from './utils/imageLayout'
 
-export const DATABASE_SCHEMA_VERSION = 8
+export const DATABASE_SCHEMA_VERSION = 9
 
 const DEFAULT_CATEGORIES: CategoryRecord[] = [
   { id: 'outerwear', name: 'アウター', sortOrder: 0, isActive: true },
@@ -124,6 +124,8 @@ export const db = new FashionArchiveDatabase()
 export async function initializeDatabase() {
   const categoryCount = await db.categories.count()
   if (categoryCount === 0) await db.categories.bulkAdd(DEFAULT_CATEGORIES)
+  const measurementDefinitions = await db.settings.get(MEASUREMENT_DEFINITIONS_SETTING_KEY)
+  if (!measurementDefinitions) await db.settings.put({ key: MEASUREMENT_DEFINITIONS_SETTING_KEY, value: DEFAULT_MEASUREMENT_DEFINITIONS })
   const storedVersion = Number((await db.settings.get('schemaVersion'))?.value ?? 0)
   if (storedVersion < DATABASE_SCHEMA_VERSION) await db.settings.put({ key: 'schemaVersion', value: DATABASE_SCHEMA_VERSION })
 }

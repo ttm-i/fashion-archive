@@ -13,7 +13,7 @@ import { prepareImage } from '../utils/images'
 import { normalizeFocus, normalizeImageFocus } from '../utils/imageFocus'
 import { arrangeImages } from '../utils/imageLayout'
 import { parseMaterials } from '../utils/materials'
-import { emptyMeasurementDraft, MEASUREMENT_LABELS, measurementKeysForCategory, parseMeasurements, toMeasurementDraft } from '../utils/measurements'
+import { DEFAULT_MEASUREMENT_DEFINITIONS, MEASUREMENT_DEFINITIONS_SETTING_KEY, emptyMeasurementDraft, measurementDefinitionsForCategory, normalizeMeasurementDefinitions, parseMeasurements, toMeasurementDraft } from '../utils/measurements'
 
 const blankDraft: ItemDraft = {
   name: '', brand: '', categoryId: null, size: '', color: '', materials: [], measurements: emptyMeasurementDraft(), originalPrice: '', purchasePrice: '', purchaseDate: '', purchaseMethod: '', purchaseSource: '', notes: '', isFavorite: false,
@@ -30,6 +30,7 @@ export function ItemEditorScreen({ id, mode = 'owned' }: { id?: string; mode?: '
   const existing = editorData?.item
   const categories = useLiveQuery(() => db.categories.orderBy('sortOrder').toArray(), [], [])
   const allItems = useLiveQuery(() => db.items.toArray(), [], [])
+  const measurementDefinitions = useLiveQuery(async () => normalizeMeasurementDefinitions((await db.settings.get(MEASUREMENT_DEFINITIONS_SETTING_KEY))?.value), [], DEFAULT_MEASUREMENT_DEFINITIONS)
   const [itemId, setItemId] = useState(() => id ?? crypto.randomUUID())
   const [draft, setDraft] = useState<ItemDraft>(blankDraft)
   const [images, setImages] = useState<ImageRecord[]>([])
@@ -53,7 +54,7 @@ export function ItemEditorScreen({ id, mode = 'owned' }: { id?: string; mode?: '
       size: existing.size,
       color: existing.color,
       materials: (existing.materials ?? []).map((material) => ({ ...material, percentage: material.percentage?.toString() ?? '' })),
-      measurements: toMeasurementDraft(existing.measurements),
+      measurements: toMeasurementDraft(existing.measurements, measurementDefinitions),
       originalPrice: existing.originalPrice?.toString() ?? '',
       purchasePrice: existing.purchasePrice?.toString() ?? '',
       purchaseDate: existing.purchaseDate ?? '',
@@ -64,7 +65,7 @@ export function ItemEditorScreen({ id, mode = 'owned' }: { id?: string; mode?: '
     })
     setImages(arrangeImages(editorData.images, existing.imageLayout))
     setLoaded(true)
-  }, [id, existing, editorData, loaded])
+  }, [id, existing, editorData, loaded, measurementDefinitions])
 
   useEffect(() => {
     if (!loaded || draftChecked) return
@@ -201,7 +202,7 @@ export function ItemEditorScreen({ id, mode = 'owned' }: { id?: string; mode?: '
     update('materials', draft.materials.filter((material) => material.id !== id))
   }
 
-  const measurementKeys = measurementKeysForCategory(draft.categoryId)
+  const activeMeasurementDefinitions = measurementDefinitionsForCategory(draft.categoryId, measurementDefinitions)
   const updateMeasurement = (key: MeasurementKey, value: string) => {
     update('measurements', { ...draft.measurements, [key]: value })
   }
@@ -217,7 +218,7 @@ export function ItemEditorScreen({ id, mode = 'owned' }: { id?: string; mode?: '
     setError('')
     try {
       const materials = parseMaterials(draft.materials)
-      const measurements = parseMeasurements(draft.measurements, measurementKeys)
+      const measurements = parseMeasurements(draft.measurements, activeMeasurementDefinitions)
       const now = new Date()
       const item: ItemRecord = {
         id: itemId,
@@ -335,11 +336,11 @@ export function ItemEditorScreen({ id, mode = 'owned' }: { id?: string; mode?: '
           </div>
         </details>
 
-        {measurementKeys.length > 0 && <details className="editor-section disclosure">
+        {activeMeasurementDefinitions.length > 0 && <details className="editor-section disclosure">
           <summary><span><small>MEASUREMENTS</small>採寸</span></summary>
           <div className="form-stack measurement-editor">
             <p className="field-help">平置きで測った数値をcm単位で入力できます。必要な項目だけで構いません。</p>
-            <div className="measurement-grid">{measurementKeys.map((key) => <label key={key}><span>{MEASUREMENT_LABELS[key]}（cm）</span><input inputMode="decimal" value={draft.measurements[key]} onChange={(event) => updateMeasurement(key, event.target.value.replace(/[^0-9.,]/g, ''))} placeholder="未入力" /></label>)}</div>
+            <div className="measurement-grid">{activeMeasurementDefinitions.map((definition) => <label key={definition.id}><span>{definition.name}（cm）</span><input inputMode="decimal" value={draft.measurements[definition.id] ?? ''} onChange={(event) => updateMeasurement(definition.id, event.target.value.replace(/[^0-9.,]/g, ''))} placeholder="未入力" /></label>)}</div>
           </div>
         </details>}
 

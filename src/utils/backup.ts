@@ -2,7 +2,7 @@ import { BlobReader, BlobWriter, TextReader, TextWriter, ZipReader, ZipWriter } 
 import { DATABASE_SCHEMA_VERSION, db, updateBackupTimestamp } from '../db'
 import type { BackupManifest, CategoryRecord, ImageRecord, ItemMeasurements, ItemRecord, MaterialEntry, OwnershipStatus, SettingRecord } from '../types'
 import { formatMaterials } from './materials'
-import { formatMeasurements, sanitizeMeasurementsForCategory } from './measurements'
+import { DEFAULT_MEASUREMENT_DEFINITIONS, MEASUREMENT_DEFINITIONS_SETTING_KEY, formatMeasurements, measurementDefinitionsFromSettings, sanitizeMeasurementsForCategory } from './measurements'
 import { normalizeFocus } from './imageFocus'
 import { arrangeImages, createImageLayout } from './imageLayout'
 
@@ -50,7 +50,7 @@ export async function createBackup() {
   const manifest: BackupManifest = {
     app: 'Fashion Archive',
     backupVersion: 1,
-    schemaVersion: 6,
+    schemaVersion: 7,
     createdAt: new Date().toISOString(),
     appVersion: __APP_VERSION__,
     itemCount: items.length,
@@ -128,7 +128,7 @@ export async function inspectBackup(file: File): Promise<BackupContents> {
     if (manifest.app !== 'Fashion Archive' || manifest.backupVersion !== 1) {
       throw new Error('Fashion Archiveの対応バックアップではありません。')
     }
-    if (manifest.schemaVersion > 6) throw new Error('このバックアップには、より新しいアプリが必要です。')
+    if (manifest.schemaVersion > 7) throw new Error('このバックアップには、より新しいアプリが必要です。')
     const [items, images, categories, settings] = await Promise.all([
       parseJsonEntry<SerializedItem[]>(entries, 'items.json'),
       parseJsonEntry<SerializedImage[]>(entries, 'images.json'),
@@ -173,6 +173,7 @@ export async function restoreBackup(file: File) {
         thumbnailBlob,
       })
     }
+    const measurementDefinitions = measurementDefinitionsFromSettings(metadata.settings)
     const items: ItemRecord[] = metadata.items.map((item) => {
       const itemImages = images.filter((image) => image.itemId === item.id)
       const arrangedImages = arrangeImages(itemImages, item.imageLayout)
@@ -180,7 +181,7 @@ export async function restoreBackup(file: File) {
         ...item,
         ownershipStatus: item.ownershipStatus ?? 'owned',
         materials: item.materials ?? [],
-        measurements: sanitizeMeasurementsForCategory(item.measurements, item.categoryId),
+        measurements: sanitizeMeasurementsForCategory(item.measurements, item.categoryId, measurementDefinitions),
         coverImageId: arrangedImages[0]?.id ?? null,
         imageLayout: createImageLayout(arrangedImages),
         schemaVersion: 6,
@@ -195,6 +196,7 @@ export async function restoreBackup(file: File) {
       if (images.length) await db.images.bulkAdd(images)
       if (metadata.categories.length) await db.categories.bulkAdd(metadata.categories)
       if (metadata.settings.length) await db.settings.bulkAdd(metadata.settings)
+      if (!metadata.settings.some((setting) => setting.key === MEASUREMENT_DEFINITIONS_SETTING_KEY)) await db.settings.put({ key: MEASUREMENT_DEFINITIONS_SETTING_KEY, value: DEFAULT_MEASUREMENT_DEFINITIONS })
       await db.settings.put({ key: 'schemaVersion', value: DATABASE_SCHEMA_VERSION })
       await db.settings.put({ key: 'changesSinceBackup', value: 0 })
       await db.settings.put({ key: 'lastBackupAt', value: metadata.manifest.createdAt })
@@ -206,11 +208,13 @@ export async function restoreBackup(file: File) {
 }
 
 export async function exportCsv() {
-  const [items, categories] = await Promise.all([
+  const [items, categories, settings] = await Promise.all([
     db.items.filter((item) => item.deletedAt === null).toArray(),
     db.categories.toArray(),
+    db.settings.toArray(),
   ])
   const categoryNames = new Map(categories.map((category) => [category.id, category.name]))
+  const measurementDefinitions = measurementDefinitionsFromSettings(settings)
   const quote = (value: unknown) => `"${String(value ?? '').replaceAll('"', '""')}"`
   const rows = items.map((item) => [
     item.name,
@@ -219,7 +223,7 @@ export async function exportCsv() {
     item.size,
     item.color,
     formatMaterials(item.materials),
-    formatMeasurements(item.measurements, item.categoryId),
+    formatMeasurements(item.measurements, item.categoryId, measurementDefinitions),
     item.originalPrice ?? '',
     item.purchasePrice ?? '',
     item.purchaseDate ?? '',

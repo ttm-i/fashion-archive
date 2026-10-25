@@ -5,26 +5,28 @@ import { AppHeader } from '../components/AppHeader'
 import { ItemImage } from '../components/ItemImage'
 import { db, markDataChanged, moveItemToTrash, restoreItem } from '../db'
 import { navigate } from '../hooks/useRoute'
-import type { CategoryRecord, ImageRecord, ItemRecord } from '../types'
+import type { CategoryRecord, ImageRecord, ItemRecord, MeasurementDefinition } from '../types'
 import { formatDate, formatYen } from '../utils/format'
-import { measurementEntries, measurementKeysForCategory } from '../utils/measurements'
+import { MEASUREMENT_DEFINITIONS_SETTING_KEY, measurementDefinitionsForCategory, measurementEntries, normalizeMeasurementDefinitions } from '../utils/measurements'
 import { arrangeImages } from '../utils/imageLayout'
 
 interface DetailData {
   item?: ItemRecord
   images: ImageRecord[]
   category?: CategoryRecord
+  measurementDefinitions: MeasurementDefinition[]
 }
 
 type ItemTransition = 'idle' | 'exit-next' | 'exit-previous' | 'enter-next' | 'enter-previous'
 
 async function loadDetailData(id: string): Promise<DetailData> {
-  const [item, images] = await Promise.all([
+  const [item, images, measurementSetting] = await Promise.all([
     db.items.get(id),
     db.images.where('itemId').equals(id).toArray(),
+    db.settings.get(MEASUREMENT_DEFINITIONS_SETTING_KEY),
   ])
   const category = item?.categoryId ? await db.categories.get(item.categoryId) : undefined
-  return { item, images, category }
+  return { item, images, category, measurementDefinitions: normalizeMeasurementDefinitions(measurementSetting?.value) }
 }
 
 export function ItemDetailScreen({ id }: { id: string }) {
@@ -96,7 +98,7 @@ export function ItemDetailScreen({ id }: { id: string }) {
     setDeleted(false)
   }
   const savings = item.originalPrice !== null && item.purchasePrice !== null && item.originalPrice > item.purchasePrice ? item.originalPrice - item.purchasePrice : null
-  const measurements = measurementEntries(item.measurements, measurementKeysForCategory(item.categoryId))
+  const measurements = measurementEntries(item.measurements, measurementDefinitionsForCategory(item.categoryId, displayData?.measurementDefinitions))
   const beginSwipe = (event: React.TouchEvent) => {
     const touch = event.touches[0]
     touchStart.current = touch ? { x: touch.clientX, y: touch.clientY } : null

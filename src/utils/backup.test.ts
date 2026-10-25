@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { db, initializeDatabase, saveItem } from '../db'
+import { DATABASE_SCHEMA_VERSION, db, initializeDatabase, saveItem } from '../db'
 import type { ImageRecord, ItemRecord } from '../types'
 import { createBackup, inspectBackup, restoreBackup } from './backup'
+import { MEASUREMENT_DEFINITIONS_SETTING_KEY, normalizeMeasurementDefinitions } from './measurements'
 
 const itemId = 'backup-test-item'
 const imageId = 'backup-test-image'
@@ -61,6 +62,8 @@ describe('complete backup', () => {
 
   it('creates, inspects and restores items and photos', async () => {
     await saveItem(makeItem(), [makeImage()])
+    const customizedDefinitions = normalizeMeasurementDefinitions((await db.settings.get(MEASUREMENT_DEFINITIONS_SETTING_KEY))?.value).map((definition) => definition.categoryId === 'outerwear' && definition.id === 'bodyLength' ? { ...definition, name: '後ろ着丈' } : definition)
+    await db.settings.put({ key: MEASUREMENT_DEFINITIONS_SETTING_KEY, value: customizedDefinitions })
     const { blob, manifest } = await createBackup()
     const file = new File([blob], 'FashionArchive_Backup.zip', { type: 'application/zip' })
 
@@ -84,7 +87,8 @@ describe('complete backup', () => {
     expect(restoredImage?.thumbnailBlob.size).toBe(new Blob(['thumbnail']).size)
     expect(restoredImage).toMatchObject({ focusX: 68, focusY: 24 })
     expect(await db.drafts.count()).toBe(0)
-    expect((await db.settings.get('schemaVersion'))?.value).toBe(8)
+    expect((await db.settings.get('schemaVersion'))?.value).toBe(DATABASE_SCHEMA_VERSION)
+    expect(normalizeMeasurementDefinitions((await db.settings.get(MEASUREMENT_DEFINITIONS_SETTING_KEY))?.value).find((definition) => definition.categoryId === 'outerwear' && definition.id === 'bodyLength')?.name).toBe('後ろ着丈')
   })
 
   it('rejects a file that is not a Fashion Archive backup', async () => {

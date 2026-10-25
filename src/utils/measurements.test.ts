@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { emptyMeasurementDraft, formatMeasurements, measurementKeysForCategory, parseMeasurements, sanitizeMeasurementsForCategory, toMeasurementDraft } from './measurements'
+import { DEFAULT_MEASUREMENT_DEFINITIONS, emptyMeasurementDraft, formatMeasurements, measurementDefinitionsForCategory, measurementKeysForCategory, normalizeMeasurementDefinitions, parseMeasurements, sanitizeMeasurementsForCategory, toMeasurementDraft } from './measurements'
 
 describe('measurements', () => {
   it('provides the appropriate fields for supported categories', () => {
@@ -29,5 +29,16 @@ describe('measurements', () => {
   it('converts saved values for editing and CSV display', () => {
     expect(toMeasurementDraft({ inseam: 76 }).inseam).toBe('76')
     expect(formatMeasurements({ waist: 82, inseam: 76 })).toBe('ウエスト 82cm / 股下 76cm')
+  })
+
+  it('uses customized names and order without changing saved values', () => {
+    const customized = DEFAULT_MEASUREMENT_DEFINITIONS.map((definition) => definition.categoryId === 'tops' && definition.id === 'bodyLength' ? { ...definition, name: '後ろ着丈', sortOrder: -1 } : definition)
+    expect(measurementDefinitionsForCategory('tops', customized).map((definition) => definition.name)[0]).toBe('後ろ着丈')
+    expect(formatMeasurements({ bodyLength: 72 }, 'tops', customized)).toBe('後ろ着丈 72cm')
+  })
+
+  it('falls back to safe defaults when stored definitions are unavailable', () => {
+    expect(normalizeMeasurementDefinitions(null)).toEqual(DEFAULT_MEASUREMENT_DEFINITIONS)
+    expect(normalizeMeasurementDefinitions([])).toEqual([])
   })
 })

@@ -13,6 +13,7 @@ export type Route =
   | { name: 'edit'; id: string }
   | { name: 'trash' }
   | { name: 'categories' }
+  | { name: 'measurements' }
   | { name: 'backup' }
 
 function parseHash(): Route {
@@ -29,6 +30,7 @@ function parseHash(): Route {
   if (first === 'settings') return { name: 'settings' }
   if (first === 'trash') return { name: 'trash' }
   if (first === 'categories') return { name: 'categories' }
+  if (first === 'measurements') return { name: 'measurements' }
   if (first === 'backup') return { name: 'backup' }
   return { name: 'collection' }
 }

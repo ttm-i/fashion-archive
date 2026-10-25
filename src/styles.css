@@ -139,12 +139,12 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .form-stack .suggestion-input-shell input { border: 0; }
 .suggestion-input-shell > button { width: 50px; padding: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; border: 0; border-left: 1px solid var(--line); background: #faf8f5; color: var(--muted); font-size: 9px; }
 .suggestion-input-shell > button svg { width: 16px; height: 16px; }
-.suggestion-backdrop { z-index: 180; }
-.suggestion-sheet { padding-top: 12px; }
+.suggestion-backdrop { z-index: 180; inset: auto 0; top: var(--suggestion-viewport-top, 0); height: var(--suggestion-viewport-height, 100dvh); overflow: hidden; }
+.suggestion-sheet { max-height: 92%; padding-top: 12px; display: grid; grid-template-rows: auto auto minmax(0, 1fr); overflow: hidden; }
 .suggestion-search { min-height: 46px; margin: 14px 0 10px; padding: 0 12px; display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--line); }
 .suggestion-search svg { width: 17px; color: var(--muted); }
 .suggestion-search input { min-width: 0; flex: 1; border: 0; outline: 0; background: transparent; }
-.suggestion-list { max-height: 48dvh; overflow-y: auto; border-top: 1px solid var(--line); }
+.suggestion-list { min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; border-top: 1px solid var(--line); }
 .suggestion-list button { width: 100%; min-height: 48px; padding: 9px 4px; border: 0; border-bottom: 1px solid var(--line); background: transparent; text-align: left; font-size: 14px; }
 .suggestion-list button.active { color: var(--accent); font-weight: 700; }
 .suggestion-list p { margin: 18px 4px; color: var(--muted); font-size: 12px; line-height: 1.6; }
@@ -335,17 +335,36 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .trash-list span { color: var(--muted); font-size: 10px; }
 .trash-actions { display: flex; gap: 3px; }
 .trash-reminder { margin: 0 16px 14px; padding: 12px 14px; background: #fff1ed; border-left: 3px solid var(--accent); color: #75433a; font-size: 12px; line-height: 1.55; }
-.trash-actions button, .category-list button { width: 42px; height: 42px; padding: 0; display: grid; place-items: center; border: 0; background: transparent; color: var(--accent); }
-.trash-actions button.danger, .category-list button.danger { color: var(--danger); }
-.trash-actions svg, .category-list button svg { width: 18px; }
+.trash-actions button, .category-list button, .measurement-type-list button { width: 42px; height: 42px; padding: 0; display: grid; place-items: center; border: 0; background: transparent; color: var(--accent); }
+.trash-actions button.danger, .category-list button.danger, .measurement-type-list button.danger { color: var(--danger); }
+.trash-actions svg, .category-list button svg, .measurement-type-list button svg { width: 18px; }
 
 .category-list { margin: 0 16px 18px; border-top: 1px solid var(--line); }
 .category-list > div { min-height: 62px; display: grid; grid-template-columns: 56px 1fr 42px 42px; gap: 3px; align-items: center; border-bottom: 1px solid var(--line); }
 .category-order { display: flex; }
 .category-order button { width: 28px; }
 .category-order button:disabled { color: #c9c3bc; }
-.category-list input { min-width: 0; height: 44px; padding: 0 8px; border: 0; background: transparent; font-size: 15px; }
+.category-list input { min-width: 0; height: 44px; padding: 0 8px; border: 0; background: transparent; font-size: 16px; }
 .category-add { margin: 0 16px; padding: 17px 15px; display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: end; background: var(--surface); border: 1px solid var(--line); }
+
+.measurement-category-tabs { margin: 0 16px 13px; padding: 3px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; background: var(--soft); }
+.measurement-category-tabs button { min-width: 0; min-height: 42px; padding: 6px 4px; border: 0; background: transparent; color: var(--muted); font-size: 12px; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.measurement-category-tabs button.active { background: var(--surface); color: var(--ink); box-shadow: 0 2px 8px rgba(39,31,24,.08); }
+.measurement-management-note { margin: 0 20px 15px; color: var(--muted); font-size: 11px; line-height: 1.6; }
+.measurement-management-message { margin: 0 16px 12px; padding: 10px 12px; background: #eef5ec; border-left: 3px solid #63825c; color: #3e6038; font-size: 12px; }
+.measurement-type-list { margin: 0 16px 18px; border-top: 1px solid var(--line); }
+.measurement-type-list > div { min-height: 62px; display: grid; grid-template-columns: 56px 1fr 42px 42px; gap: 3px; align-items: center; border-bottom: 1px solid var(--line); }
+.measurement-type-list input { min-width: 0; height: 44px; padding: 0 8px; border: 0; background: transparent; font-size: 16px; }
+.measurement-type-empty { margin: 0; padding: 20px 8px; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+.measurement-add { margin-bottom: 22px; }
+.measurement-usage-backdrop { z-index: 220; }
+.measurement-usage-sheet { padding-top: 12px; }
+.measurement-usage-sheet > header { gap: 12px; }
+.measurement-usage-sheet > header h2 { font-size: 20px; }
+.measurement-usage-sheet > p { margin: 10px 0 12px; color: var(--muted); font-size: 12px; line-height: 1.6; }
+.measurement-usage-sheet ul { max-height: 32dvh; margin: 0 0 18px; padding: 0; overflow-y: auto; border-top: 1px solid var(--line); list-style: none; }
+.measurement-usage-sheet li { min-height: 44px; padding: 10px 4px; border-bottom: 1px solid var(--line); font-size: 13px; }
+.measurement-usage-sheet li span { color: var(--muted); font-size: 11px; }
 
 .backup-summary { margin: 0 16px 14px; padding: 16px; display: flex; gap: 12px; align-items: center; background: #eaf1e7; border: 1px solid #d1ddcd; }
 .backup-summary > svg { width: 25px; color: #577151; }

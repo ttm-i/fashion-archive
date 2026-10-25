@@ -21,9 +21,16 @@ export interface MaterialDraft {
   percentage: string
 }
 
-export type MeasurementKey = 'shoulderWidth' | 'chestWidth' | 'bodyLength' | 'sleeveLength' | 'waist' | 'rise' | 'inseam' | 'thighWidth' | 'hemWidth'
+export type MeasurementKey = string
 export type ItemMeasurements = Partial<Record<MeasurementKey, number>>
 export type MeasurementDraft = Record<MeasurementKey, string>
+
+export interface MeasurementDefinition {
+  id: string
+  categoryId: 'outerwear' | 'tops' | 'bottoms'
+  name: string
+  sortOrder: number
+}
 
 export interface ImageLayoutEntry {
   imageId: string
