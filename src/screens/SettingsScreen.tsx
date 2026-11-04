@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { ChevronRight, Database, Eye, FolderCog, Info, RefreshCw, Ruler, ShoppingBag, Trash2, Wifi, WifiOff } from 'lucide-react'
+import { ChevronRight, Database, Eye, FolderCog, Info, RefreshCw, Ruler, Shirt, ShoppingBag, Trash2, Wifi, WifiOff } from 'lucide-react'
 import { AppHeader } from '../components/AppHeader'
 import { db, getStorageEstimate } from '../db'
 import { navigate } from '../hooks/useRoute'
@@ -26,6 +26,7 @@ export function SettingsScreen() {
       <SettingsGroup title="コレクション設定">
         <SettingLink icon={<FolderCog />} label="カテゴリー管理" detail="追加・名称変更・並べ替え" onClick={() => navigate('categories')} />
         <SettingLink icon={<Ruler />} label="寸法項目管理" detail="アウター・トップス・ボトムス" onClick={() => navigate('measurements')} />
+        <SettingLink icon={<Shirt />} label="ブランド候補" detail="よく買うブランド・名称・表示順" onClick={() => navigate('brands')} />
         <SettingLink icon={<ShoppingBag />} label="購入先候補" detail="よく使う候補・名称・表示順" onClick={() => navigate('purchase-sources')} />
         <label className="setting-toggle"><Eye aria-hidden="true" /><div><strong>一覧に購入価格を表示</strong><span>オフにしても詳細画面と統計には表示されます</span></div><input type="checkbox" checked={showPrices?.value !== false} onChange={(event) => db.settings.put({ key: 'showPricesInCollection', value: event.target.checked })} /></label>
       </SettingsGroup>

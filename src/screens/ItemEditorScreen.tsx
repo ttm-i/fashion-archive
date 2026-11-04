@@ -15,6 +15,7 @@ import { arrangeImages } from '../utils/imageLayout'
 import { parseMaterials } from '../utils/materials'
 import { DEFAULT_MEASUREMENT_DEFINITIONS, MEASUREMENT_DEFINITIONS_SETTING_KEY, emptyMeasurementDraft, measurementDefinitionsForCategory, normalizeMeasurementDefinitions, parseMeasurements, toMeasurementDraft } from '../utils/measurements'
 import { MAX_FAVORITE_PURCHASE_SOURCES, PURCHASE_SOURCE_PREFERENCES_KEY, mergePurchaseSources, normalizePurchaseSourcePreferences } from '../utils/purchaseSources'
+import { BRAND_PREFERENCES_KEY, MAX_FAVORITE_BRANDS, mergeBrands, normalizeBrandPreferences } from '../utils/brands'
 
 const blankDraft: ItemDraft = {
   name: '', brand: '', categoryId: null, size: '', color: '', materials: [], measurements: emptyMeasurementDraft(), originalPrice: '', purchasePrice: '', purchaseDate: '', purchaseMethod: '', purchaseSource: '', notes: '', isFavorite: false,
@@ -31,6 +32,7 @@ export function ItemEditorScreen({ id, mode = 'owned' }: { id?: string; mode?: '
   const existing = editorData?.item
   const categories = useLiveQuery(() => db.categories.orderBy('sortOrder').toArray(), [], [])
   const allItems = useLiveQuery(() => db.items.toArray(), [], [])
+  const brandPreferences = useLiveQuery(async () => normalizeBrandPreferences((await db.settings.get(BRAND_PREFERENCES_KEY))?.value), [], { favorites: [], custom: [] })
   const purchaseSourcePreferences = useLiveQuery(async () => normalizePurchaseSourcePreferences((await db.settings.get(PURCHASE_SOURCE_PREFERENCES_KEY))?.value), [], { favorites: [], custom: [] })
   const measurementDefinitions = useLiveQuery(async () => normalizeMeasurementDefinitions((await db.settings.get(MEASUREMENT_DEFINITIONS_SETTING_KEY))?.value), [], DEFAULT_MEASUREMENT_DEFINITIONS)
   const [itemId, setItemId] = useState(() => id ?? crypto.randomUUID())
@@ -100,7 +102,10 @@ export function ItemEditorScreen({ id, mode = 'owned' }: { id?: string; mode?: '
     return () => window.removeEventListener('beforeunload', warnBeforeUnload)
   }, [dirty])
 
-  const brandSuggestions = useMemo(() => uniqueSuggestions(allItems.map((item) => item.brand)), [allItems])
+  const brandSuggestions = useMemo(() => {
+    const recentValues = [...allItems].sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()).map((item) => item.brand)
+    return mergeBrands(recentValues, brandPreferences)
+  }, [allItems, brandPreferences])
   const colorSuggestions = useMemo(() => uniqueSuggestions(allItems.map((item) => item.color)), [allItems])
   const sourceSuggestions = useMemo(() => {
     const recentValues = [...allItems].sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()).map((item) => item.purchaseSource)
@@ -125,6 +130,20 @@ export function ItemEditorScreen({ id, mode = 'owned' }: { id?: string; mode?: '
       ? [...current.favorites, source]
       : current.favorites.filter((value) => value.toLocaleLowerCase('ja-JP') !== key)
     await db.settings.put({ key: PURCHASE_SOURCE_PREFERENCES_KEY, value: normalizePurchaseSourcePreferences({ ...current, favorites }) })
+    await markDataChanged()
+  }
+
+  const updateFavoriteBrand = async (brand: string, favorite: boolean) => {
+    const current = normalizeBrandPreferences((await db.settings.get(BRAND_PREFERENCES_KEY))?.value)
+    if (favorite && current.favorites.length >= MAX_FAVORITE_BRANDS) {
+      window.alert(`よく買うブランドは${MAX_FAVORITE_BRANDS}件までです。設定画面でいずれかの固定を外してください。`)
+      return
+    }
+    const key = brand.toLocaleLowerCase('ja-JP')
+    const favorites = favorite
+      ? [...current.favorites, brand]
+      : current.favorites.filter((value) => value.toLocaleLowerCase('ja-JP') !== key)
+    await db.settings.put({ key: BRAND_PREFERENCES_KEY, value: normalizeBrandPreferences({ ...current, favorites }) })
     await markDataChanged()
   }
 
@@ -316,7 +335,7 @@ export function ItemEditorScreen({ id, mode = 'owned' }: { id?: string; mode?: '
           <div className="section-heading"><div><span>BASIC</span><h2>基本情報</h2></div></div>
           <div className="form-stack">
             <label><span>アイテム名 <b>*</b></span><input id="item-name" value={draft.name} onChange={(event) => update('name', event.target.value)} placeholder="例：ウールブレンドジャケット" /></label>
-            <SuggestionInput id="item-brand" label="ブランド" value={draft.brand} suggestions={brandSuggestions} onChange={(value) => update('brand', value)} placeholder="例：AURALEE" />
+            <SuggestionInput id="item-brand" label="ブランド" value={draft.brand} suggestions={brandSuggestions} favoriteSuggestions={brandPreferences.favorites} onFavoriteChange={updateFavoriteBrand} onChange={(value) => update('brand', value)} placeholder="例：AURALEE" />
             <label><span>カテゴリー</span><select value={draft.categoryId ?? ''} onChange={(event) => update('categoryId', event.target.value || null)}><option value="">未設定</option>{categories.filter((category) => category.isActive).map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label>
             <div className="field-pair"><label><span>サイズ</span><input value={draft.size} onChange={(event) => update('size', event.target.value)} placeholder="M / 42 / 27.0" /></label><SuggestionInput id="item-color" label="カラー" value={draft.color} suggestions={colorSuggestions} onChange={(value) => update('color', value)} placeholder="ブラック" /></div>
             {!isWanted && <label className="switch-row"><span><Heart aria-hidden="true" />お気に入り</span><input type="checkbox" checked={draft.isFavorite} onChange={(event) => update('isFavorite', event.target.checked)} /></label>}
