@@ -27,4 +27,14 @@ describe('SuggestionInput', () => {
     expect(screen.queryByRole('option', { name: 'ブラック' })).toBeNull()
     expect(screen.getByRole('presentation').style.getPropertyValue('--suggestion-viewport-height')).not.toBe('')
   })
+
+  it('separates favorite candidates and allows their favorite state to change', () => {
+    const onFavoriteChange = vi.fn()
+    render(<SuggestionInput id="source" label="購入先" value="" suggestions={['最近の店', '固定店']} favoriteSuggestions={['固定店']} onFavoriteChange={onFavoriteChange} onChange={() => undefined} />)
+    fireEvent.click(screen.getByRole('button', { name: '購入先の候補を表示' }))
+
+    expect(screen.getByText('よく使う')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: '最近の店をよく使う購入先に追加' }))
+    expect(onFavoriteChange).toHaveBeenCalledWith('最近の店', true)
+  })
 })

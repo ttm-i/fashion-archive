@@ -4,7 +4,7 @@ import { Camera, ChevronLeft, ChevronRight, Heart, ImagePlus, Move, Plus, Star, 
 import { AppHeader } from '../components/AppHeader'
 import { ItemImage } from '../components/ItemImage'
 import { SuggestionInput } from '../components/SuggestionInput'
-import { db, saveItem } from '../db'
+import { db, markDataChanged, saveItem } from '../db'
 import { navigate } from '../hooks/useRoute'
 import type { EditorDraftRecord, ImageRecord, ItemDraft, ItemRecord, MeasurementKey, PurchaseMethod } from '../types'
 import { PURCHASE_METHODS } from '../types'
@@ -14,6 +14,7 @@ import { normalizeFocus, normalizeImageFocus } from '../utils/imageFocus'
 import { arrangeImages } from '../utils/imageLayout'
 import { parseMaterials } from '../utils/materials'
 import { DEFAULT_MEASUREMENT_DEFINITIONS, MEASUREMENT_DEFINITIONS_SETTING_KEY, emptyMeasurementDraft, measurementDefinitionsForCategory, normalizeMeasurementDefinitions, parseMeasurements, toMeasurementDraft } from '../utils/measurements'
+import { MAX_FAVORITE_PURCHASE_SOURCES, PURCHASE_SOURCE_PREFERENCES_KEY, mergePurchaseSources, normalizePurchaseSourcePreferences } from '../utils/purchaseSources'
 
 const blankDraft: ItemDraft = {
   name: '', brand: '', categoryId: null, size: '', color: '', materials: [], measurements: emptyMeasurementDraft(), originalPrice: '', purchasePrice: '', purchaseDate: '', purchaseMethod: '', purchaseSource: '', notes: '', isFavorite: false,
@@ -30,6 +31,7 @@ export function ItemEditorScreen({ id, mode = 'owned' }: { id?: string; mode?: '
   const existing = editorData?.item
   const categories = useLiveQuery(() => db.categories.orderBy('sortOrder').toArray(), [], [])
   const allItems = useLiveQuery(() => db.items.toArray(), [], [])
+  const purchaseSourcePreferences = useLiveQuery(async () => normalizePurchaseSourcePreferences((await db.settings.get(PURCHASE_SOURCE_PREFERENCES_KEY))?.value), [], { favorites: [], custom: [] })
   const measurementDefinitions = useLiveQuery(async () => normalizeMeasurementDefinitions((await db.settings.get(MEASUREMENT_DEFINITIONS_SETTING_KEY))?.value), [], DEFAULT_MEASUREMENT_DEFINITIONS)
   const [itemId, setItemId] = useState(() => id ?? crypto.randomUUID())
   const [draft, setDraft] = useState<ItemDraft>(blankDraft)
@@ -100,13 +102,30 @@ export function ItemEditorScreen({ id, mode = 'owned' }: { id?: string; mode?: '
 
   const brandSuggestions = useMemo(() => uniqueSuggestions(allItems.map((item) => item.brand)), [allItems])
   const colorSuggestions = useMemo(() => uniqueSuggestions(allItems.map((item) => item.color)), [allItems])
-  const sourceSuggestions = useMemo(() => uniqueSuggestions(allItems.map((item) => item.purchaseSource)), [allItems])
+  const sourceSuggestions = useMemo(() => {
+    const recentValues = [...allItems].sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()).map((item) => item.purchaseSource)
+    return mergePurchaseSources(recentValues, purchaseSourcePreferences)
+  }, [allItems, purchaseSourcePreferences])
   const materialSuggestions = useMemo(() => uniqueSuggestions(allItems.flatMap((item) => (item.materials ?? []).map((material) => material.name))), [allItems])
 
   const update = <K extends keyof ItemDraft>(key: K, value: ItemDraft[K]) => {
     setDraft((current) => ({ ...current, [key]: value }))
     setDirty(true)
     setError('')
+  }
+
+  const updateFavoritePurchaseSource = async (source: string, favorite: boolean) => {
+    const current = normalizePurchaseSourcePreferences((await db.settings.get(PURCHASE_SOURCE_PREFERENCES_KEY))?.value)
+    if (favorite && current.favorites.length >= MAX_FAVORITE_PURCHASE_SOURCES) {
+      window.alert(`よく使う購入先は${MAX_FAVORITE_PURCHASE_SOURCES}件までです。設定画面でいずれかの固定を外してください。`)
+      return
+    }
+    const key = source.toLocaleLowerCase('ja-JP')
+    const favorites = favorite
+      ? [...current.favorites, source]
+      : current.favorites.filter((value) => value.toLocaleLowerCase('ja-JP') !== key)
+    await db.settings.put({ key: PURCHASE_SOURCE_PREFERENCES_KEY, value: normalizePurchaseSourcePreferences({ ...current, favorites }) })
+    await markDataChanged()
   }
 
   const goBack = async () => {
@@ -308,7 +327,7 @@ export function ItemEditorScreen({ id, mode = 'owned' }: { id?: string; mode?: '
           <summary><span><small>KEEP</small>購入候補</span></summary>
           <div className="form-stack">
             <label><span>想定価格</span><div className="money-input"><span>¥</span><input inputMode="numeric" value={draft.originalPrice} onChange={(event) => update('originalPrice', event.target.value.replace(/\D/g, ''))} placeholder="0" /></div></label>
-            <SuggestionInput id="purchase-source" label="購入候補先" value={draft.purchaseSource} suggestions={sourceSuggestions} onChange={(value) => update('purchaseSource', value)} placeholder="例：公式オンラインストア" />
+            <SuggestionInput id="purchase-source" label="購入候補先" value={draft.purchaseSource} suggestions={sourceSuggestions} favoriteSuggestions={purchaseSourcePreferences.favorites} onFavoriteChange={updateFavoritePurchaseSource} onChange={(value) => update('purchaseSource', value)} placeholder="例：公式オンラインストア" />
           </div>
         </details> : <details className="editor-section disclosure" open>
           <summary><span><small>PURCHASE</small>購入情報</span></summary>
@@ -316,7 +335,7 @@ export function ItemEditorScreen({ id, mode = 'owned' }: { id?: string; mode?: '
             <div className="field-pair"><label><span>購入価格</span><div className="money-input"><span>¥</span><input inputMode="numeric" value={draft.purchasePrice} onChange={(event) => update('purchasePrice', event.target.value.replace(/\D/g, ''))} placeholder="0" /></div></label><label><span>定価</span><div className="money-input"><span>¥</span><input inputMode="numeric" value={draft.originalPrice} onChange={(event) => update('originalPrice', event.target.value.replace(/\D/g, ''))} placeholder="0" /></div></label></div>
             <label><span>購入日</span><div className="date-input-shell"><input type="date" value={draft.purchaseDate} onChange={(event) => update('purchaseDate', event.target.value)} /></div></label>
             <label><span>購入方法</span><select value={draft.purchaseMethod} onChange={(event) => update('purchaseMethod', event.target.value as PurchaseMethod | '')}><option value="">未設定</option>{PURCHASE_METHODS.map((method) => <option key={method}>{method}</option>)}</select></label>
-            <SuggestionInput id="purchase-source" label="購入先" value={draft.purchaseSource} suggestions={sourceSuggestions} onChange={(value) => update('purchaseSource', value)} placeholder="例：公式オンラインストア" />
+            <SuggestionInput id="purchase-source" label="購入先" value={draft.purchaseSource} suggestions={sourceSuggestions} favoriteSuggestions={purchaseSourcePreferences.favorites} onFavoriteChange={updateFavoritePurchaseSource} onChange={(value) => update('purchaseSource', value)} placeholder="例：公式オンラインストア" />
           </div>
         </details>}
 

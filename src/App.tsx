@@ -10,6 +10,7 @@ import { TrashScreen } from './screens/TrashScreen'
 import { CategoriesScreen } from './screens/CategoriesScreen'
 import { MeasurementsScreen } from './screens/MeasurementsScreen'
 import { WishlistScreen } from './screens/WishlistScreen'
+import { PurchaseSourcesScreen } from './screens/PurchaseSourcesScreen'
 import { useRegisterSW } from 'virtual:pwa-register/react'
 
 const BackupScreen = lazy(() => import('./screens/BackupScreen').then((module) => ({ default: module.BackupScreen })))
@@ -32,6 +33,7 @@ export function App() {
       {route.name === 'trash' && <TrashScreen />}
       {route.name === 'categories' && <CategoriesScreen />}
       {route.name === 'measurements' && <MeasurementsScreen />}
+      {route.name === 'purchase-sources' && <PurchaseSourcesScreen />}
       {route.name === 'backup' && <Suspense fallback={<main className="loading-screen">バックアップ画面を読み込んでいます…</main>}><BackupScreen /></Suspense>}
       {needRefresh && <div className="update-banner" role="status"><span>新しいバージョンがあります</span><button type="button" onClick={() => updateServiceWorker(true)}>更新する</button></div>}
     </div>

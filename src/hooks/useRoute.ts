@@ -14,6 +14,7 @@ export type Route =
   | { name: 'trash' }
   | { name: 'categories' }
   | { name: 'measurements' }
+  | { name: 'purchase-sources' }
   | { name: 'backup' }
 
 function parseHash(): Route {
@@ -31,6 +32,7 @@ function parseHash(): Route {
   if (first === 'trash') return { name: 'trash' }
   if (first === 'categories') return { name: 'categories' }
   if (first === 'measurements') return { name: 'measurements' }
+  if (first === 'purchase-sources') return { name: 'purchase-sources' }
   if (first === 'backup') return { name: 'backup' }
   return { name: 'collection' }
 }
