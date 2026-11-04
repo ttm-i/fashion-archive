@@ -4,7 +4,7 @@ import { DEFAULT_MEASUREMENT_DEFINITIONS, MEASUREMENT_DEFINITIONS_SETTING_KEY, s
 import { normalizeFocus, normalizeImageFocus } from './utils/imageFocus'
 import { createImageLayout } from './utils/imageLayout'
 
-export const DATABASE_SCHEMA_VERSION = 9
+export const DATABASE_SCHEMA_VERSION = 10
 
 const DEFAULT_CATEGORIES: CategoryRecord[] = [
   { id: 'outerwear', name: 'アウター', sortOrder: 0, isActive: true },
@@ -116,6 +116,21 @@ class FashionArchiveDatabase extends Dexie {
         await itemTable.put(item)
       }
     })
+    this.version(9).stores({
+      items: 'id, name, brand, categoryId, purchaseDate, purchaseMethod, ownershipStatus, isFavorite, createdAt, updatedAt, deletedAt',
+      images: 'id, itemId, [itemId+sortOrder], sortOrder',
+      categories: 'id, sortOrder, isActive',
+      settings: 'key',
+      drafts: 'key, itemId, updatedAt',
+    }).upgrade(async (transaction) => {
+      await transaction.table('items').toCollection().modify((item) => {
+        item.acquisitionType = 'purchase'
+        item.schemaVersion = 7
+      })
+      await transaction.table('drafts').toCollection().modify((draft) => {
+        if (!draft.draft.acquisitionType) draft.draft.acquisitionType = 'purchase'
+      })
+    })
   }
 }
 
@@ -145,7 +160,7 @@ export async function saveItem(item: ItemRecord, images: ImageRecord[]) {
     const nextIds = new Set(normalizedImages.map((image) => image.id))
     const removedIds = oldImages.filter((image) => !nextIds.has(image.id)).map((image) => image.id)
     if (removedIds.length) await db.images.bulkDelete(removedIds)
-    await db.items.put({ ...item, coverImageId: normalizedImages[0]?.id ?? null, imageLayout: createImageLayout(normalizedImages), schemaVersion: 6 })
+    await db.items.put({ ...item, acquisitionType: item.acquisitionType ?? 'purchase', coverImageId: normalizedImages[0]?.id ?? null, imageLayout: createImageLayout(normalizedImages), schemaVersion: 7 })
     const addedImages = normalizedImages.filter((image) => !oldImageMap.has(image.id))
     if (addedImages.length) await db.images.bulkAdd(addedImages)
   })

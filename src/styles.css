@@ -219,6 +219,11 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .material-add svg { width: 17px; height: 17px; }
 .material-empty, .field-help { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.65; }
 .field-help { padding-top: 2px; }
+.acquisition-type-field { display: grid; gap: 7px; }
+.acquisition-type-field > span { color: var(--muted); font-size: 11px; }
+.acquisition-type-toggle { padding: 3px; display: grid; grid-template-columns: 1fr 1fr; gap: 3px; background: var(--soft); }
+.acquisition-type-toggle button { min-height: 44px; padding: 7px 12px; border: 0; background: transparent; color: var(--muted); font-size: 14px; font-weight: 650; }
+.acquisition-type-toggle button.active { background: var(--surface); color: var(--ink); box-shadow: 0 2px 8px rgba(39,31,24,.08); }
 .measurement-editor { gap: 12px; }
 .measurement-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 10px; }
 .editor-save { position: sticky; z-index: 15; bottom: 0; padding: 12px 18px calc(12px + env(safe-area-inset-bottom)); background: rgba(255,255,255,.96); border-top: 1px solid var(--line); }
@@ -253,6 +258,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .detail-price span { color: var(--muted); font-size: 12px; text-decoration: line-through; }
 .detail-price em { padding: 3px 6px; background: var(--accent-soft); color: var(--accent); font-size: 10px; font-style: normal; font-weight: 700; }
 .detail-price small { color: var(--muted); font-size: 10px; }
+.detail-price--gift small { font-size: 11px; }
 .detail-facts { margin: 23px 0; padding: 19px 0 6px; display: grid; grid-template-columns: 1fr 1fr; gap: 18px 16px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 .detail-facts div { min-width: 0; display: grid; gap: 4px; }
 .detail-facts span, .detail-notes > span, .detail-materials > span, .detail-measurements > span { color: var(--muted); font-size: 9px; letter-spacing: .12em; }
@@ -295,7 +301,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .stat-grid { padding: 0 16px 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .stat-grid article { min-width: 0; padding: 17px 14px; background: var(--surface); border: 1px solid var(--line); }
 .stat-grid article:nth-child(2) { background: var(--accent-soft); border-color: transparent; }
-.stat-grid article:last-child { grid-column: 1 / -1; }
+.stat-grid article:last-child { grid-column: auto; }
 .stat-grid span { color: var(--muted); font-size: 8px; letter-spacing: .15em; }
 .stat-grid strong { display: block; margin-top: 8px; overflow-wrap: anywhere; font: 600 24px/1.15 Georgia, serif; }
 .stat-grid p { margin: 4px 0 0; color: var(--muted); font-size: 10px; }

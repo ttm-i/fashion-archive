@@ -8,6 +8,7 @@ export const PURCHASE_METHODS = [
 
 export type PurchaseMethod = (typeof PURCHASE_METHODS)[number]
 export type OwnershipStatus = 'owned' | 'wanted'
+export type AcquisitionType = 'purchase' | 'gift'
 
 export interface MaterialEntry {
   id: string
@@ -52,6 +53,7 @@ export interface ItemRecord {
   purchaseDate: string | null
   purchaseMethod: PurchaseMethod | null
   purchaseSource: string
+  acquisitionType?: AcquisitionType
   notes: string
   isFavorite: boolean
   ownershipStatus: OwnershipStatus
@@ -120,6 +122,7 @@ export interface ItemDraft {
   purchaseDate: string
   purchaseMethod: PurchaseMethod | ''
   purchaseSource: string
+  acquisitionType?: AcquisitionType
   notes: string
   isFavorite: boolean
 }

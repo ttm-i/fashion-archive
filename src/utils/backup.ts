@@ -1,6 +1,6 @@
 import { BlobReader, BlobWriter, TextReader, TextWriter, ZipReader, ZipWriter } from '@zip.js/zip.js'
 import { DATABASE_SCHEMA_VERSION, db, updateBackupTimestamp } from '../db'
-import type { BackupManifest, CategoryRecord, ImageRecord, ItemMeasurements, ItemRecord, MaterialEntry, OwnershipStatus, SettingRecord } from '../types'
+import type { AcquisitionType, BackupManifest, CategoryRecord, ImageRecord, ItemMeasurements, ItemRecord, MaterialEntry, OwnershipStatus, SettingRecord } from '../types'
 import { formatMaterials } from './materials'
 import { DEFAULT_MEASUREMENT_DEFINITIONS, MEASUREMENT_DEFINITIONS_SETTING_KEY, formatMeasurements, measurementDefinitionsFromSettings, sanitizeMeasurementsForCategory } from './measurements'
 import { normalizeFocus } from './imageFocus'
@@ -21,8 +21,9 @@ interface SerializedImage {
   thumbnailFile: string
 }
 
-interface SerializedItem extends Omit<ItemRecord, 'createdAt' | 'updatedAt' | 'deletedAt' | 'ownershipStatus' | 'materials' | 'measurements'> {
+interface SerializedItem extends Omit<ItemRecord, 'createdAt' | 'updatedAt' | 'deletedAt' | 'ownershipStatus' | 'acquisitionType' | 'materials' | 'measurements'> {
   ownershipStatus?: OwnershipStatus
+  acquisitionType?: AcquisitionType
   materials?: MaterialEntry[]
   measurements?: ItemMeasurements
   createdAt: string
@@ -50,7 +51,7 @@ export async function createBackup() {
   const manifest: BackupManifest = {
     app: 'Fashion Archive',
     backupVersion: 1,
-    schemaVersion: 7,
+    schemaVersion: 8,
     createdAt: new Date().toISOString(),
     appVersion: __APP_VERSION__,
     itemCount: items.length,
@@ -128,7 +129,7 @@ export async function inspectBackup(file: File): Promise<BackupContents> {
     if (manifest.app !== 'Fashion Archive' || manifest.backupVersion !== 1) {
       throw new Error('Fashion Archiveの対応バックアップではありません。')
     }
-    if (manifest.schemaVersion > 7) throw new Error('このバックアップには、より新しいアプリが必要です。')
+    if (manifest.schemaVersion > 8) throw new Error('このバックアップには、より新しいアプリが必要です。')
     const [items, images, categories, settings] = await Promise.all([
       parseJsonEntry<SerializedItem[]>(entries, 'items.json'),
       parseJsonEntry<SerializedImage[]>(entries, 'images.json'),
@@ -180,11 +181,12 @@ export async function restoreBackup(file: File) {
       return {
         ...item,
         ownershipStatus: item.ownershipStatus ?? 'owned',
+        acquisitionType: item.acquisitionType ?? 'purchase',
         materials: item.materials ?? [],
         measurements: sanitizeMeasurementsForCategory(item.measurements, item.categoryId, measurementDefinitions),
         coverImageId: arrangedImages[0]?.id ?? null,
         imageLayout: createImageLayout(arrangedImages),
-        schemaVersion: 6,
+        schemaVersion: 7,
         createdAt: new Date(item.createdAt),
         updatedAt: new Date(item.updatedAt),
         deletedAt: item.deletedAt ? new Date(item.deletedAt) : null,
@@ -224,6 +226,7 @@ export async function exportCsv() {
     item.color,
     formatMaterials(item.materials),
     formatMeasurements(item.measurements, item.categoryId, measurementDefinitions),
+    item.acquisitionType === 'gift' ? 'ギフト' : '購入',
     item.originalPrice ?? '',
     item.purchasePrice ?? '',
     item.purchaseDate ?? '',
@@ -235,7 +238,7 @@ export async function exportCsv() {
     item.createdAt.toISOString(),
     item.updatedAt.toISOString(),
   ])
-  const header = ['アイテム名', 'ブランド', 'カテゴリー', 'サイズ', 'カラー', '素材・混率', '採寸', '定価・想定価格', '購入価格', '購入日', '購入方法', '購入先・候補先', '状態', 'お気に入り', 'メモ', '登録日時', '更新日時']
+  const header = ['アイテム名', 'ブランド', 'カテゴリー', 'サイズ', 'カラー', '素材・混率', '採寸', '入手区分', '定価・想定価格・参考価格', '購入価格', '購入日・入手日', '購入方法', '購入先・候補先', '状態', 'お気に入り', 'メモ', '登録日時', '更新日時']
   const content = `\uFEFF${[header, ...rows].map((row) => row.map(quote).join(',')).join('\r\n')}`
   const url = URL.createObjectURL(new Blob([content], { type: 'text/csv;charset=utf-8' }))
   const anchor = document.createElement('a')

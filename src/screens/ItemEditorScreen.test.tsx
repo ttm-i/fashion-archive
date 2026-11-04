@@ -61,6 +61,22 @@ describe('item editor draft recovery', () => {
     expect(replaceState.mock.calls.at(-1)?.[2]).toMatch(/^#\/item\//)
   })
 
+  it('stores a gift without treating its reference price as spending', async () => {
+    render(<ItemEditorScreen />)
+    fireEvent.change(await screen.findByLabelText(/アイテム名/), { target: { value: '贈りもののコート' } })
+    fireEvent.click(screen.getByRole('button', { name: 'ギフト' }))
+    expect(screen.queryByLabelText(/購入価格/)).toBeNull()
+    fireEvent.change(screen.getByLabelText(/参考価格（任意）/), { target: { value: '50000' } })
+    fireEvent.change(screen.getByLabelText(/入手日/), { target: { value: '2026-11-05' } })
+    fireEvent.click(screen.getByRole('button', { name: '保存する' }))
+
+    await waitFor(async () => {
+      expect(await db.items.where('name').equals('贈りもののコート').first()).toMatchObject({
+        acquisitionType: 'gift', originalPrice: 50000, purchasePrice: null, purchaseDate: '2026-11-05', purchaseMethod: null, purchaseSource: '',
+      })
+    })
+  })
+
   it('records a material blend whose percentages total 100', async () => {
     render(<ItemEditorScreen />)
     fireEvent.change(await screen.findByLabelText(/アイテム名/), { target: { value: '素材テスト' } })

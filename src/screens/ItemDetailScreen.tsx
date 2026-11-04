@@ -43,6 +43,7 @@ export function ItemDetailScreen({ id }: { id: string }) {
   const item = displayData?.item
   const category = displayData?.category
   const isWanted = item?.ownershipStatus === 'wanted'
+  const isGift = item?.acquisitionType === 'gift'
   const images = useMemo(() => arrangeImages(displayData?.images ?? [], item?.imageLayout), [displayData?.images, item?.imageLayout])
   const navigationIds = (() => {
     try {
@@ -97,7 +98,7 @@ export function ItemDetailScreen({ id }: { id: string }) {
     await restoreItem(item.id)
     setDeleted(false)
   }
-  const savings = item.originalPrice !== null && item.purchasePrice !== null && item.originalPrice > item.purchasePrice ? item.originalPrice - item.purchasePrice : null
+  const savings = !isGift && item.originalPrice !== null && item.purchasePrice !== null && item.originalPrice > item.purchasePrice ? item.originalPrice - item.purchasePrice : null
   const measurements = measurementEntries(item.measurements, measurementDefinitionsForCategory(item.categoryId, displayData?.measurementDefinitions))
   const beginSwipe = (event: React.TouchEvent) => {
     const touch = event.touches[0]
@@ -185,13 +186,13 @@ export function ItemDetailScreen({ id }: { id: string }) {
         <section className="detail-content" onTouchStart={beginItemSwipe} onTouchEnd={finishItemSwipe}>
         {item.brand && <span className="detail-brand">{item.brand}</span>}
         <h1>{item.name}</h1>
-        {isWanted ? <div className="detail-price"><strong>{item.originalPrice !== null ? formatYen(item.originalPrice) : '価格未登録'}</strong>{item.originalPrice !== null && <small>想定価格</small>}</div> : <div className="detail-price"><strong>{item.purchasePrice !== null ? formatYen(item.purchasePrice) : '価格未登録'}</strong>{item.originalPrice !== null && <span>定価 {formatYen(item.originalPrice)}</span>}{savings !== null && <em>{formatYen(savings)} OFF</em>}</div>}
+        {isWanted ? <div className="detail-price"><strong>{item.originalPrice !== null ? formatYen(item.originalPrice) : '価格未登録'}</strong>{item.originalPrice !== null && <small>想定価格</small>}</div> : isGift ? <div className="detail-price detail-price--gift"><strong>ギフト</strong>{item.originalPrice !== null && <small>参考価格 {formatYen(item.originalPrice)}</small>}</div> : <div className="detail-price"><strong>{item.purchasePrice !== null ? formatYen(item.purchasePrice) : '価格未登録'}</strong>{item.originalPrice !== null && <span>定価 {formatYen(item.originalPrice)}</span>}{savings !== null && <em>{formatYen(savings)} OFF</em>}</div>}
 
         <div className="detail-facts">
           {category && <Fact label="CATEGORY" value={category.name} />}
           {item.size && <Fact label="SIZE" value={item.size} />}
           {item.color && <Fact label="COLOR" value={item.color} />}
-          {item.purchaseDate && <Fact label="DATE" value={formatDate(item.purchaseDate)} />}
+          {item.purchaseDate && <Fact label={isGift ? 'RECEIVED DATE' : 'DATE'} value={formatDate(item.purchaseDate)} />}
           {item.purchaseMethod && <Fact label="METHOD" value={item.purchaseMethod} />}
           {item.purchaseSource && <Fact label={isWanted ? 'CANDIDATE STORE' : 'STORE'} value={item.purchaseSource} />}
         </div>
@@ -199,7 +200,7 @@ export function ItemDetailScreen({ id }: { id: string }) {
         {(item.materials ?? []).length > 0 && <div className="detail-materials"><span>MATERIAL</span><div>{item.materials.map((material) => <p key={material.id}><strong>{material.name}</strong>{material.percentage !== null && <span>{material.percentage}%</span>}</p>)}</div></div>}
         {measurements.length > 0 && <div className="detail-measurements"><span>MEASUREMENTS</span><div>{measurements.map((measurement) => <p key={measurement.key}><span>{measurement.label}</span><strong>{measurement.value} cm</strong></p>)}</div></div>}
         {item.notes && <div className="detail-notes"><span>NOTES</span><p>{item.notes}</p></div>}
-        {isWanted && <button className="primary-button block acquire-button" type="button" onClick={() => navigate(`acquire/${item.id}`, true)}>購入済みにする</button>}
+        {isWanted && <button className="primary-button block acquire-button" type="button" onClick={() => navigate(`acquire/${item.id}`, true)}>コレクションへ移す</button>}
         <button className={isWanted ? 'secondary-button block' : 'primary-button block'} type="button" onClick={() => navigate(isWanted ? `edit-wanted/${item.id}` : `edit/${item.id}`, true)}><Pencil aria-hidden="true" />編集する</button>
         <button className="danger-link" type="button" onClick={remove}><Trash2 aria-hidden="true" />ゴミ箱へ移動</button>
         </section>

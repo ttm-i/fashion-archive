@@ -16,13 +16,16 @@ export function filterItemsByYear(items: ItemRecord[], year: string) {
 }
 
 export function summarizePurchases(items: ItemRecord[]) {
-  const priced = items.filter((item) => item.purchasePrice !== null)
+  const purchased = items.filter((item) => item.acquisitionType !== 'gift')
+  const giftCount = items.length - purchased.length
+  const priced = purchased.filter((item) => item.purchasePrice !== null)
   const total = priced.reduce((sum, item) => sum + (item.purchasePrice ?? 0), 0)
   const discountEligible = priced.filter((item) => item.originalPrice !== null && item.originalPrice > 0)
   const listPriceTotal = discountEligible.reduce((sum, item) => sum + (item.originalPrice ?? 0), 0)
   const savings = discountEligible.reduce((sum, item) => sum + Math.max(0, (item.originalPrice ?? 0) - (item.purchasePrice ?? 0)), 0)
   return {
     itemCount: items.length,
+    giftCount,
     pricedCount: priced.length,
     total,
     average: priced.length ? Math.round(total / priced.length) : 0,
@@ -38,7 +41,7 @@ export function groupInsightRows(items: ItemRecord[], label: (item: ItemRecord) 
     const key = label(item)
     const row = map.get(key) ?? { label: key, count: 0, amount: 0 }
     row.count += 1
-    row.amount += item.purchasePrice ?? 0
+    row.amount += item.acquisitionType === 'gift' ? 0 : item.purchasePrice ?? 0
     map.set(key, row)
   }
   return [...map.values()].sort((a, b) => b.amount - a.amount || b.count - a.count || a.label.localeCompare(b.label, 'ja'))

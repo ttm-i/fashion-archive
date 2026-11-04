@@ -139,6 +139,7 @@ describe('database operations', () => {
     expect(await db.items.count()).toBe(1)
     expect((await db.settings.get('schemaVersion'))?.value).toBe(DATABASE_SCHEMA_VERSION)
     expect((await db.items.toArray())[0]?.ownershipStatus).toBe('owned')
+    expect((await db.items.toArray())[0]?.acquisitionType).toBe('purchase')
     expect((await db.items.toArray())[0]?.materials).toEqual([])
     expect((await db.items.toArray())[0]?.measurements).toEqual({})
     await expect(db.drafts.count()).resolves.toBe(0)
@@ -218,5 +219,27 @@ describe('database operations', () => {
       ],
     })
     expect(await (await db.images.get('legacy-second'))?.imageBlob.text()).toBe('second')
+  })
+
+  it('treats existing items as purchases when adding acquisition types', async () => {
+    await db.delete()
+    const legacy = new Dexie('fashion-archive')
+    legacy.version(8).stores({
+      items: 'id, name, brand, categoryId, purchaseDate, purchaseMethod, ownershipStatus, isFavorite, createdAt, updatedAt, deletedAt',
+      images: 'id, itemId, [itemId+sortOrder], sortOrder',
+      categories: 'id, sortOrder, isActive',
+      settings: 'key',
+      drafts: 'key, itemId, updatedAt',
+    })
+    await legacy.open()
+    const existing = { ...makeItem() } as Partial<ItemRecord>
+    delete existing.acquisitionType
+    await legacy.table('items').put(existing)
+    legacy.close()
+
+    await db.open()
+    await initializeDatabase()
+
+    expect((await db.items.get(existing.id!))?.acquisitionType).toBe('purchase')
   })
 })

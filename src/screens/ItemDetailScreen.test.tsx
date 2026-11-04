@@ -48,9 +48,17 @@ describe('item detail navigation', () => {
     render(<ItemDetailScreen id="wanted" />)
     const replaceState = vi.spyOn(window.history, 'replaceState')
     expect(await screen.findByText('ほしいジャケット')).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: '購入済みにする' }))
+    fireEvent.click(screen.getByRole('button', { name: 'コレクションへ移す' }))
     expect(window.location.hash).toBe('#/acquire/wanted')
     expect(replaceState).toHaveBeenCalledWith(null, '', '#/acquire/wanted')
+  })
+
+  it('shows a gift label and reference price without a discount presentation', async () => {
+    await saveItem({ ...item('gift', 'ギフトのバッグ'), acquisitionType: 'gift', originalPrice: 30000 }, [])
+    render(<ItemDetailScreen id="gift" />)
+    expect(await screen.findByText('ギフト')).toBeTruthy()
+    expect(screen.getByText(/参考価格.*30,000/)).toBeTruthy()
+    expect(screen.queryByText(/OFF/)).toBeNull()
   })
 
   it('uses each photo order and framing in the square detail gallery', async () => {

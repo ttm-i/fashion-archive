@@ -81,7 +81,7 @@ describe('complete backup', () => {
     })
     await restoreBackup(file)
 
-    expect(await db.items.get(itemId)).toMatchObject({ name: 'バックアップ用コート', coverImageId: imageId, imageLayout: [{ imageId, focusX: 68, focusY: 24 }], ownershipStatus: 'owned', materials: [{ name: 'ウール', percentage: 100 }], measurements: { shoulderWidth: 47.5, bodyLength: 72 } })
+    expect(await db.items.get(itemId)).toMatchObject({ name: 'バックアップ用コート', coverImageId: imageId, imageLayout: [{ imageId, focusX: 68, focusY: 24 }], ownershipStatus: 'owned', acquisitionType: 'purchase', materials: [{ name: 'ウール', percentage: 100 }], measurements: { shoulderWidth: 47.5, bodyLength: 72 } })
     const restoredImage = await db.images.get(imageId)
     expect(restoredImage?.imageBlob.size).toBe(new Blob(['full-image']).size)
     expect(restoredImage?.thumbnailBlob.size).toBe(new Blob(['thumbnail']).size)
@@ -94,5 +94,16 @@ describe('complete backup', () => {
   it('rejects a file that is not a Fashion Archive backup', async () => {
     const file = new File(['not a zip'], 'invalid.zip', { type: 'application/zip' })
     await expect(inspectBackup(file)).rejects.toThrow()
+  })
+
+  it('preserves a gift and its reference price through backup and restore', async () => {
+    await saveItem({ ...makeItem(), acquisitionType: 'gift', purchasePrice: null, purchaseMethod: null, purchaseSource: '' }, [])
+    const { blob } = await createBackup()
+    const file = new File([blob], 'FashionArchive_Gift_Backup.zip', { type: 'application/zip' })
+    await db.items.clear()
+
+    await restoreBackup(file)
+
+    expect(await db.items.get(itemId)).toMatchObject({ acquisitionType: 'gift', originalPrice: 45000, purchasePrice: null, purchaseMethod: null, purchaseSource: '' })
   })
 })

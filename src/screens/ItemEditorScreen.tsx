@@ -18,7 +18,7 @@ import { MAX_FAVORITE_PURCHASE_SOURCES, PURCHASE_SOURCE_PREFERENCES_KEY, mergePu
 import { BRAND_PREFERENCES_KEY, MAX_FAVORITE_BRANDS, mergeBrands, normalizeBrandPreferences } from '../utils/brands'
 
 const blankDraft: ItemDraft = {
-  name: '', brand: '', categoryId: null, size: '', color: '', materials: [], measurements: emptyMeasurementDraft(), originalPrice: '', purchasePrice: '', purchaseDate: '', purchaseMethod: '', purchaseSource: '', notes: '', isFavorite: false,
+  name: '', brand: '', categoryId: null, size: '', color: '', materials: [], measurements: emptyMeasurementDraft(), originalPrice: '', purchasePrice: '', purchaseDate: '', purchaseMethod: '', purchaseSource: '', acquisitionType: 'purchase', notes: '', isFavorite: false,
 }
 
 export function ItemEditorScreen({ id, mode = 'owned' }: { id?: string; mode?: 'owned' | 'wanted' | 'acquire' }) {
@@ -64,6 +64,7 @@ export function ItemEditorScreen({ id, mode = 'owned' }: { id?: string; mode?: '
       purchaseDate: existing.purchaseDate ?? '',
       purchaseMethod: existing.purchaseMethod ?? '',
       purchaseSource: existing.purchaseSource,
+      acquisitionType: existing.acquisitionType ?? 'purchase',
       notes: existing.notes,
       isFavorite: existing.isFavorite,
     })
@@ -156,7 +157,7 @@ export function ItemEditorScreen({ id, mode = 'owned' }: { id?: string; mode?: '
   const resumeDraft = () => {
     if (!pendingDraft) return
     setItemId(pendingDraft.itemId)
-    setDraft({ ...pendingDraft.draft, materials: pendingDraft.draft.materials ?? [], measurements: pendingDraft.draft.measurements ?? emptyMeasurementDraft() })
+    setDraft({ ...pendingDraft.draft, acquisitionType: pendingDraft.draft.acquisitionType ?? 'purchase', materials: pendingDraft.draft.materials ?? [], measurements: pendingDraft.draft.measurements ?? emptyMeasurementDraft() })
     setImages(pendingDraft.images.map(normalizeImageFocus))
     setDirty(true)
     setPendingDraft(null)
@@ -241,6 +242,7 @@ export function ItemEditorScreen({ id, mode = 'owned' }: { id?: string; mode?: '
   }
 
   const activeMeasurementDefinitions = measurementDefinitionsForCategory(draft.categoryId, measurementDefinitions)
+  const isGift = draft.acquisitionType === 'gift'
   const updateMeasurement = (key: MeasurementKey, value: string) => {
     update('measurements', { ...draft.measurements, [key]: value })
   }
@@ -268,10 +270,11 @@ export function ItemEditorScreen({ id, mode = 'owned' }: { id?: string; mode?: '
         materials,
         measurements,
         originalPrice: parseOptionalPrice(draft.originalPrice),
-        purchasePrice: isWanted ? null : parseOptionalPrice(draft.purchasePrice),
+        purchasePrice: isWanted || isGift ? null : parseOptionalPrice(draft.purchasePrice),
         purchaseDate: isWanted ? null : draft.purchaseDate || null,
-        purchaseMethod: isWanted ? null : (draft.purchaseMethod || null) as PurchaseMethod | null,
-        purchaseSource: draft.purchaseSource.trim(),
+        purchaseMethod: isWanted || isGift ? null : (draft.purchaseMethod || null) as PurchaseMethod | null,
+        purchaseSource: isWanted ? draft.purchaseSource.trim() : isGift ? '' : draft.purchaseSource.trim(),
+        acquisitionType: isWanted ? 'purchase' : (draft.acquisitionType ?? 'purchase'),
         notes: draft.notes.trim(),
         isFavorite: isWanted ? false : draft.isFavorite,
         ownershipStatus: isWanted ? 'wanted' : 'owned',
@@ -279,7 +282,7 @@ export function ItemEditorScreen({ id, mode = 'owned' }: { id?: string; mode?: '
         createdAt: existing?.createdAt ?? now,
         updatedAt: now,
         deletedAt: existing?.deletedAt ?? null,
-        schemaVersion: 6,
+        schemaVersion: 7,
       }
       await saveItem(item, images.map((image, sortOrder) => ({ ...image, itemId, sortOrder })))
       await db.drafts.delete(draftKey)
@@ -302,9 +305,9 @@ export function ItemEditorScreen({ id, mode = 'owned' }: { id?: string; mode?: '
 
   return (
     <main className="screen editor-screen">
-      <AppHeader title={isAcquire ? '購入済みにする' : isWanted ? (id ? 'キープを編集' : 'キープに追加') : (id ? 'アイテムを編集' : '新しいアイテム')} back={goBack} action={<button className="text-action" type="button" onClick={submit} disabled={saving || processing}>{isAcquire ? '登録' : '保存'}</button>} />
+      <AppHeader title={isAcquire ? 'コレクションへ移す' : isWanted ? (id ? 'キープを編集' : 'キープに追加') : (id ? 'アイテムを編集' : '新しいアイテム')} back={goBack} action={<button className="text-action" type="button" onClick={submit} disabled={saving || processing}>{isAcquire ? '登録' : '保存'}</button>} />
       <form onSubmit={(event) => { event.preventDefault(); submit() }}>
-        <section className="editor-intro"><span>{isAcquire ? 'MOVE TO COLLECTION' : isWanted ? 'KEEP' : 'NEW RECORD'}</span><h1>{isAcquire ? '購入情報を追加' : isWanted ? (id ? '購入候補を編集' : '気になる一着を記録') : (id ? 'アイテムを編集' : '新しい一着を記録')}</h1><p>{isAcquire ? '保存すると、キープからコレクションへ移動します。' : '写真と名前だけでも保存できます。'}</p></section>
+        <section className="editor-intro"><span>{isAcquire ? 'MOVE TO COLLECTION' : isWanted ? 'KEEP' : 'NEW RECORD'}</span><h1>{isAcquire ? '入手情報を追加' : isWanted ? (id ? '購入候補を編集' : '気になる一着を記録') : (id ? 'アイテムを編集' : '新しい一着を記録')}</h1><p>{isAcquire ? '保存すると、キープからコレクションへ移動します。' : '写真と名前だけでも保存できます。'}</p></section>
 
         <section className="editor-section photo-editor">
           <div className="section-heading"><div><span>PHOTOS</span><h2>写真</h2></div><p>{images.length} / 3</p></div>
@@ -349,12 +352,12 @@ export function ItemEditorScreen({ id, mode = 'owned' }: { id?: string; mode?: '
             <SuggestionInput id="purchase-source" label="購入候補先" value={draft.purchaseSource} suggestions={sourceSuggestions} favoriteSuggestions={purchaseSourcePreferences.favorites} onFavoriteChange={updateFavoritePurchaseSource} onChange={(value) => update('purchaseSource', value)} placeholder="例：公式オンラインストア" />
           </div>
         </details> : <details className="editor-section disclosure" open>
-          <summary><span><small>PURCHASE</small>購入情報</span></summary>
+          <summary><span><small>ACQUISITION</small>入手情報</span></summary>
           <div className="form-stack">
-            <div className="field-pair"><label><span>購入価格</span><div className="money-input"><span>¥</span><input inputMode="numeric" value={draft.purchasePrice} onChange={(event) => update('purchasePrice', event.target.value.replace(/\D/g, ''))} placeholder="0" /></div></label><label><span>定価</span><div className="money-input"><span>¥</span><input inputMode="numeric" value={draft.originalPrice} onChange={(event) => update('originalPrice', event.target.value.replace(/\D/g, ''))} placeholder="0" /></div></label></div>
-            <label><span>購入日</span><div className="date-input-shell"><input type="date" value={draft.purchaseDate} onChange={(event) => update('purchaseDate', event.target.value)} /></div></label>
-            <label><span>購入方法</span><select value={draft.purchaseMethod} onChange={(event) => update('purchaseMethod', event.target.value as PurchaseMethod | '')}><option value="">未設定</option>{PURCHASE_METHODS.map((method) => <option key={method}>{method}</option>)}</select></label>
-            <SuggestionInput id="purchase-source" label="購入先" value={draft.purchaseSource} suggestions={sourceSuggestions} favoriteSuggestions={purchaseSourcePreferences.favorites} onFavoriteChange={updateFavoritePurchaseSource} onChange={(value) => update('purchaseSource', value)} placeholder="例：公式オンラインストア" />
+            <div className="acquisition-type-field"><span>入手区分</span><div className="acquisition-type-toggle" role="group" aria-label="入手区分"><button className={!isGift ? 'active' : ''} type="button" aria-pressed={!isGift} onClick={() => update('acquisitionType', 'purchase')}>購入</button><button className={isGift ? 'active' : ''} type="button" aria-pressed={isGift} onClick={() => update('acquisitionType', 'gift')}>ギフト</button></div></div>
+            {isGift ? <label><span>参考価格（任意）</span><div className="money-input"><span>¥</span><input inputMode="numeric" value={draft.originalPrice} onChange={(event) => update('originalPrice', event.target.value.replace(/\D/g, ''))} placeholder="0" /></div></label> : <div className="field-pair"><label><span>購入価格</span><div className="money-input"><span>¥</span><input inputMode="numeric" value={draft.purchasePrice} onChange={(event) => update('purchasePrice', event.target.value.replace(/\D/g, ''))} placeholder="0" /></div></label><label><span>定価</span><div className="money-input"><span>¥</span><input inputMode="numeric" value={draft.originalPrice} onChange={(event) => update('originalPrice', event.target.value.replace(/\D/g, ''))} placeholder="0" /></div></label></div>}
+            <label><span>{isGift ? '入手日' : '購入日'}</span><div className="date-input-shell"><input type="date" value={draft.purchaseDate} onChange={(event) => update('purchaseDate', event.target.value)} /></div></label>
+            {!isGift && <><label><span>購入方法</span><select value={draft.purchaseMethod} onChange={(event) => update('purchaseMethod', event.target.value as PurchaseMethod | '')}><option value="">未設定</option>{PURCHASE_METHODS.map((method) => <option key={method}>{method}</option>)}</select></label><SuggestionInput id="purchase-source" label="購入先" value={draft.purchaseSource} suggestions={sourceSuggestions} favoriteSuggestions={purchaseSourcePreferences.favorites} onFavoriteChange={updateFavoritePurchaseSource} onChange={(value) => update('purchaseSource', value)} placeholder="例：公式オンラインストア" /></>}
           </div>
         </details>}
 

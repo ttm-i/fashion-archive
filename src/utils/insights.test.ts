@@ -17,17 +17,18 @@ describe('insight calculations', () => {
     item('b', '2026-02-10', 10000, 10000, 'A'),
     item('c', '2025-03-10', 15000, 20000, 'B'),
     item('d', null, null, null, 'B'),
+    { ...item('gift', '2026-04-01', null, 30000, 'GIFT'), acquisitionType: 'gift' as const },
   ]
 
   it('lists available years and filters by purchase year', () => {
     expect(purchaseYears(items)).toEqual(['2026', '2025'])
-    expect(filterItemsByYear(items, '2026').map((value) => value.id)).toEqual(['a', 'b'])
-    expect(filterItemsByYear(items, 'all')).toHaveLength(4)
+    expect(filterItemsByYear(items, '2026').map((value) => value.id)).toEqual(['a', 'b', 'gift'])
+    expect(filterItemsByYear(items, 'all')).toHaveLength(5)
   })
 
   it('calculates spend, savings and weighted discount rate', () => {
     expect(summarizePurchases(items)).toMatchObject({
-      itemCount: 4, pricedCount: 3, total: 33000, average: 11000, savings: 7000, discountRate: 17.5, discountEligibleCount: 3,
+      itemCount: 5, giftCount: 1, pricedCount: 3, total: 33000, average: 11000, savings: 7000, discountRate: 17.5, discountEligibleCount: 3,
     })
   })
 
@@ -35,6 +36,7 @@ describe('insight calculations', () => {
     expect(groupInsightRows(items, (value) => value.brand)).toEqual([
       { label: 'B', count: 2, amount: 15000 },
       { label: 'A', count: 2, amount: 18000 },
+      { label: 'GIFT', count: 1, amount: 0 },
     ].sort((a, b) => b.amount - a.amount))
   })
 })

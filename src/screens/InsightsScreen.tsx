@@ -17,13 +17,14 @@ export function InsightsScreen() {
   const years = useMemo(() => purchaseYears(items), [items])
   const periodItems = useMemo(() => filterItemsByYear(items, year), [items, year])
   const summary = useMemo(() => summarizePurchases(periodItems), [periodItems])
+  const purchasedItems = useMemo(() => periodItems.filter((item) => item.acquisitionType !== 'gift'), [periodItems])
 
   const categoryRows = useMemo(() => groupInsightRows(periodItems, (item) => item.categoryId ? categoryNames.get(item.categoryId) ?? '未設定' : '未設定'), [periodItems, categoryNames])
   const brandRows = useMemo(() => groupInsightRows(periodItems, (item) => item.brand || '未設定'), [periodItems])
   const monthRows = useMemo(() => groupInsightRows(periodItems.filter((item) => item.purchaseDate), (item) => item.purchaseDate!.slice(0, 7)).sort((a, b) => b.label.localeCompare(a.label)), [periodItems])
   const colorRows = useMemo(() => groupInsightRows(periodItems, (item) => item.color || '未設定'), [periodItems])
-  const methodRows = useMemo(() => groupInsightRows(periodItems, (item) => item.purchaseMethod || '未設定'), [periodItems])
-  const sourceRows = useMemo(() => groupInsightRows(periodItems, (item) => item.purchaseSource || '未設定'), [periodItems])
+  const methodRows = useMemo(() => groupInsightRows(purchasedItems, (item) => item.purchaseMethod || '未設定'), [purchasedItems])
+  const sourceRows = useMemo(() => groupInsightRows(purchasedItems, (item) => item.purchaseSource || '未設定'), [purchasedItems])
   const openCollection = (filter: Partial<CollectionFilter>) => {
     const periodFilter = year === 'all' ? {} : { purchaseDateFrom: `${year}-01-01`, purchaseDateTo: `${year}-12-31` }
     saveCollectionViewState({ query: '', sort: 'purchase-newest', filter: { ...EMPTY_COLLECTION_FILTER, ...periodFilter, ...filter } })
@@ -35,16 +36,17 @@ export function InsightsScreen() {
     <main className="screen screen--with-nav insights-screen">
       <AppHeader title="インサイト" />
       <section className="insights-heading"><span>YOUR WARDROBE IN NUMBERS</span><h1>インサイト</h1><p>コレクションの輪郭を、数字で眺めます。</p></section>
-      <section className="insights-period"><label htmlFor="insight-year"><span>集計期間</span><select id="insight-year" value={year} onChange={(event) => setYear(event.target.value)}><option value="all">全期間</option>{years.map((value) => <option value={value} key={value}>{value}年</option>)}</select></label><p>{year === 'all' ? '購入日未登録のアイテムも点数に含みます' : `${year}年に購入したアイテムを集計`}</p></section>
+      <section className="insights-period"><label htmlFor="insight-year"><span>集計期間</span><select id="insight-year" value={year} onChange={(event) => setYear(event.target.value)}><option value="all">全期間</option>{years.map((value) => <option value={value} key={value}>{value}年</option>)}</select></label><p>{year === 'all' ? '入手日未登録のアイテムも点数に含みます' : `${year}年に入手したアイテムを集計`}</p></section>
       <section className="stat-grid">
         <article><span>COLLECTION</span><strong>{summary.itemCount}</strong><p>pieces</p></article>
+        <article><span>GIFT</span><strong>{summary.giftCount}</strong><p>ギフト</p></article>
         <article><span>TOTAL SPEND</span><strong>{formatYen(summary.total)}</strong><p>価格登録 {summary.pricedCount}点</p></article>
         <article><span>AVERAGE</span><strong>{formatYen(summary.average)}</strong><p>平均購入単価</p></article>
         <article><span>TOTAL SAVED</span><strong>{formatYen(summary.savings)}</strong><p>定価との差額</p></article>
         <article><span>DISCOUNT RATE</span><strong>{summary.discountRate}%</strong><p>定価・購入価格登録 {summary.discountEligibleCount}点</p></article>
       </section>
       {periodItems.length === 0 ? <section className="empty-state compact"><h2>{items.length === 0 ? '統計はアイテム登録後に表示されます' : 'この期間のアイテムはありません'}</h2></section> : <>
-        <InsightSection title="月ごとの購入" rows={monthRows} showCount limit={12} formatLabel={formatMonth} onSelect={(row) => openCollection(monthFilter(row.label))} />
+        <InsightSection title="月ごとの入手" rows={monthRows} showCount limit={12} formatLabel={formatMonth} onSelect={(row) => openCollection(monthFilter(row.label))} />
         <InsightSection title="カテゴリー" rows={categoryRows} showCount onSelect={(row) => openCollection({ categoryId: row.label === '未設定' ? '__unset__' : categoryIds.get(row.label) ?? '' })} />
         <InsightSection title="ブランド" rows={brandRows} showCount onSelect={(row) => openCollection({ brand: filterValue(row.label) })} />
         <InsightSection title="カラー" rows={colorRows} showCount onSelect={(row) => openCollection({ color: filterValue(row.label) })} />
